@@ -461,14 +461,18 @@ OptAsgn :: { Expr }
 Type :: { Type }
   : TypeNonIdent { $1 }
   | TypeAlias    { $1 }
+
 TypeAlias :: { Type }
   :                               Identifier Dimensions { Alias   $1       $2 }
   | Identifier               "::" Identifier Dimensions { PSAlias $1    $3 $4 }
   | Identifier ParamBindings "::" Identifier Dimensions { CSAlias $1 $2 $4 $5 }
+
 TypeNonIdent :: { Type }
   : PartialType OptSigning Dimensions { $1 $2 $3 }
+
 PartialType :: { Signing -> [Range] -> Type }
   : PartialTypeP { snd $1 }
+
 PartialTypeP :: { (Position, Signing -> [Range] -> Type) }
   : IntegerVectorTypeP { (fst $1, makeIntegerVector $1) }
   | IntegerAtomTypeP   { (fst $1, makeIntegerAtom   $1) }
@@ -477,20 +481,24 @@ PartialTypeP :: { (Position, Signing -> [Range] -> Type) }
   | "enum" EnumBaseType "{" EnumItems   "}" { makeComplex $1 $ Enum   $2 $4 }
   | "struct" Packing    "{" StructItems "}" { makeComplex $1 $ Struct $2 $4 }
   | "union"  Packing    "{" StructItems "}" { makeComplex $1 $ Union  $2 $4 }
+
 CastingType :: { Type }
   : IntegerVectorTypeP { IntegerVector (snd $1) Unspecified [] }
   | IntegerAtomTypeP   { IntegerAtom   (snd $1) Unspecified    }
   | NonIntegerTypeP    { NonInteger    (snd $1)                }
   | SigningP           { Implicit      (snd $1)             [] }
+
 EnumBaseType :: { Type }
   : Type       { $1 }
   | Dimensions { Implicit Unspecified $1 }
 
 Signing :: { Signing }
   : SigningP { snd $1 }
+
 SigningP :: { (Position, Signing) }
   : "signed"   { withPos $1 Signed   }
   | "unsigned" { withPos $1 Unsigned }
+
 OptSigning :: { Signing }
   : Signing { $1 }
   | {- empty -} { Unspecified }
@@ -508,10 +516,12 @@ NetTypeP :: { (Position, NetType) }
   | "wire"      { withPos $1 TWire      }
   | "wand"      { withPos $1 TWand      }
   | "wor"       { withPos $1 TWor       }
+
 IntegerVectorTypeP :: { (Position, IntegerVectorType) }
   : "bit"       { withPos $1 TBit       }
   | "logic"     { withPos $1 TLogic     }
   | "reg"       { withPos $1 TReg       }
+
 IntegerAtomTypeP :: { (Position, IntegerAtomType) }
   : "byte"      { withPos $1 TByte      }
   | "shortint"  { withPos $1 TShortint  }
@@ -519,6 +529,7 @@ IntegerAtomTypeP :: { (Position, IntegerAtomType) }
   | "longint"   { withPos $1 TLongint   }
   | "integer"   { withPos $1 TInteger   }
   | "time"      { withPos $1 TTime      }
+
 NonIntegerTypeP :: { (Position, NonIntegerType) }
   : "shortreal" { withPos $1 TShortreal }
   | "real"      { withPos $1 TReal      }
@@ -530,24 +541,29 @@ NonIntegerTypeP :: { (Position, NonIntegerType) }
 EnumItems :: { [EnumItem] }
   : EnumItem               { $1 }
   | EnumItem "," EnumItems { $1 ++ $3 }
+
 EnumItem :: { [EnumItem] }
   : Identifier                    OptAsgn { [($1, $2)] }
   | IdentifierP IntegralDimension OptAsgn {% makeEnumItems $1 $2 $3 }
+
 IntegralDimension :: { (Integer, Integer) }
   : "[" IntegralNumber                    "]" { ( 0, $2 - 1) }
   | "[" IntegralNumber ":" IntegralNumber "]" { ($2,     $4) }
+
 IntegralNumber :: { Integer }
   : number {% readIntegralNumber (tokenPosition $1) (tokenString $1) }
 
 StructItems :: { [(Type, Identifier)] }
   : StructItem             { $1 }
   | StructItems StructItem { $1 ++ $2 }
+
 StructItem :: { [(Type, Identifier)] }
   : Type FieldDecls ";" { map (fieldDecl $1) $2 }
 
 FieldDecls :: { [(Identifier, [Range])] }
   : FieldDecl                 { [$1] }
   | FieldDecls "," FieldDecl  { $1 ++ [$3] }
+
 FieldDecl :: { (Identifier, [Range]) }
   : Identifier Dimensions { ($1, $2) }
 
@@ -566,6 +582,7 @@ PartHeader :: { [Attr] -> Bool -> PartKW -> [ModuleItem] -> Identifier -> ParseS
 ModuleKW :: { PartKW }
   : "module" { Module }
   | "macromodule" { Module }
+
 InterfaceKW :: { PartKW }
   : "interface" { Interface }
 
@@ -586,6 +603,7 @@ PackageImportDeclaration :: { [ModuleItem] }
 
 Params :: { [ModuleItem] }
   : PIParams { map (MIPackageItem . Decl) $1 }
+
 PIParams :: { [Decl] }
   : {- empty -} { [] }
   | "#" "(" ")" { [] }
@@ -599,24 +617,31 @@ PortDecls :: { ([Identifier], [ModuleItem]) }
 ModportItems :: { [(Identifier, [ModportDecl])] }
   : ModportItem                  { [$1] }
   | ModportItems "," ModportItem { $1 ++ [$3] }
+
 ModportItem :: { (Identifier, [ModportDecl]) }
   : Identifier "(" ModportPortsDeclarations { ($1, $3) }
+
 ModportPortsDeclarations :: { [ModportDecl] }
   : ModportPortsDeclaration(")")                          { $1 }
   | ModportPortsDeclaration(",") ModportPortsDeclarations { $1 ++ $2 }
+
 ModportPortsDeclaration(delim) :: { [ModportDecl] }
   : ModportSimplePortsDeclaration(delim) { $1 }
+
 ModportSimplePortsDeclaration(delim) :: { [ModportDecl] }
   : Direction ModportSimplePorts delim { map (\(a, b) -> ($1, a, b)) $2 }
+
 ModportSimplePorts :: { [(Identifier, Expr)] }
   : ModportSimplePort                        { [$1] }
   | ModportSimplePorts "," ModportSimplePort { $1 ++ [$3] }
+
 ModportSimplePort :: { (Identifier, Expr) }
   : "." Identifier "(" ExprOrNil ")" { ($2, $4) }
   | Identifier                       { ($1, Ident $1) }
 
 Identifier :: { Identifier }
   : IdentifierP { snd $1 }
+
 IdentifierP :: { (Position, Identifier) }
   : simpleIdentifier  { withPos $1 $ tokenString $1 }
   | escapedIdentifier { withPos $1 $ tokenString $1 }
@@ -634,12 +659,14 @@ Strength :: { Strength }
 -- uses delimiter propagation hack to avoid conflicts
 DeclTokens(delim) :: { [DeclToken] }
   : DeclTokensBase(DeclTokens(delim), delim) { $1 }
+
 DeclTokensBase(repeat, delim) :: { [DeclToken] }
   : DeclToken         DTDelim(delim) { [$1, $2] }
   | DeclToken                 repeat { [$1] ++ $2 }
   | IdentifierP ParamBindings repeat { [uncurry DTIdent $1, DTParams (fst $1) $2] ++ $3 }
   | DeclTokenAsgn ","         repeat { [$1, DTComma (tokenPosition $2)] ++ $3 }
   | DeclTokenAsgn     DTDelim(delim) { [$1, $2] }
+
 DeclToken :: { DeclToken }
   : ","                                { DTComma   $ tokenPosition $1 }
   | "[" "]"                            { DTAutoDim $ tokenPosition $1 }
@@ -661,22 +688,27 @@ DeclToken :: { DeclToken }
   | IncOrDecOperatorP                  { DTAsgn     (fst $1) (AsgnOp $ snd $1) Nothing (RawNum 1) }
   | IdentifierP               "::" Identifier { uncurry DTPSIdent $1    $3 }
   | IdentifierP ParamBindings "::" Identifier { uncurry DTCSIdent $1 $2 $4 }
+
 DTDelim(delim) :: { DeclToken }
   : delim { DTEnd (tokenPosition $1) (head $ tokenString $1) }
+
 DeclTokenAsgn :: { DeclToken }
   : "=" DelayOrEvent     Expr { DTAsgn (tokenPosition $1) AsgnOpEq (Just $2) $3 }
   | "="                  Expr { DTAsgn (tokenPosition $1) AsgnOpEq Nothing   $2 }
   | "<=" OptDelayOrEvent Expr { DTAsgn (tokenPosition $1) AsgnOpNonBlocking $2 $3 }
   | AsgnBinOpP           Expr { uncurry DTAsgn $1 Nothing $2 }
+
 PortDeclTokens(delim) :: { [DeclToken] }
   : DeclTokensBase(PortDeclTokens(delim), delim) { $1 }
   | GenericInterfaceDecl   PortDeclTokens(delim) { $1 ++ $2}
   | GenericInterfaceDecl          DTDelim(delim) { $1 ++ [$2] }
   | AttributeInstanceP     PortDeclTokens(delim) { uncurry DTAttr $1 : $2 }
+
 ModuleDeclTokens(delim) :: { [DeclToken] }
   : DeclTokensBase(ModuleDeclTokens(delim), delim) { $1 }
   | GenericInterfaceDecl   ModuleDeclTokens(delim) { $1 ++ $2}
   | GenericInterfaceDecl            DTDelim(delim) { $1 ++ [$2] }
+
 GenericInterfaceDecl :: { [DeclToken] }
   : "interface" IdentifierP { [DTType (tokenPosition $1) (\Unspecified -> InterfaceT "" ""), uncurry DTIdent $2] }
 
@@ -685,6 +717,7 @@ ParamDeclTokens(delim) :: { [DeclToken] }
   | DeclTokenAsgn ","              DTDelim(delim) { [$1, DTComma (tokenPosition $2), $3] }
   | ParamDeclToken         ParamDeclTokens(delim) { $1 ++ $2 }
   | ParamDeclToken                 DTDelim(delim) { $1 ++ [$2] }
+
 ParamDeclToken :: { [DeclToken] }
   : "=" PartialTypeP   { [DTTypeAsgn (tokenPosition $1), uncurry DTType  $2] }
   | "type" IdentifierP { [DTTypeDecl (tokenPosition $1), uncurry DTIdent $2] }
@@ -692,6 +725,7 @@ ParamDeclToken :: { [DeclToken] }
 
 Direction :: { Direction }
   : DirectionP { snd $1 }
+
 DirectionP :: { (Position, Direction) }
   : "inout"  { (tokenPosition $1, Inout ) }
   | "input"  { (tokenPosition $1, Input ) }
@@ -707,6 +741,7 @@ ModuleItem :: { [ModuleItem] }
   | ConditionalGenerateConstruct    { [Generate [$1]] }
   | LoopGenerateConstruct           { [Generate [$1]] }
   | "generate" GenItems endgenerate { [Generate $2] }
+
 NonGenerateModuleItem :: { [ModuleItem] }
   -- This item covers module instantiations and all declarations
   : ModuleDeclTokens(";")                {% mapM recordPartUsed $ parseDTsAsModuleItems $1 }
@@ -782,6 +817,7 @@ Deferral :: { Deferral }
 PropertySpec :: { PropertySpec }
   : OptClockingEvent "disable" "iff" "(" Expr ")" PropExpr { PropertySpec $1 $5  $7 }
   | OptClockingEvent                              PropExpr { PropertySpec $1 Nil $2 }
+
 OptClockingEvent :: { Maybe EventExpr }
   : ClockingEvent { Just $1 }
   | {- empty -}   { Nothing }
@@ -789,6 +825,7 @@ OptClockingEvent :: { Maybe EventExpr }
 PropExpr :: { PropExpr }
   : SeqExpr { PropExpr $1 }
   | PropExprParens { $1 }
+
 PropExprParens :: { PropExpr }
   : "(" PropExprParens ")" { $2 }
   | SeqExpr "|->" PropExpr { PropExprImpliesO  $1 $3 }
@@ -803,9 +840,11 @@ PropExprParens :: { PropExpr }
   | "nexttime"   "[" Expr "]" PropExpr { PropExprNextTime False $3  $5 }
   | "s_nexttime"              PropExpr { PropExprNextTime True  Nil $2 }
   | "s_nexttime" "[" Expr "]" PropExpr { PropExprNextTime True  $3  $5 }
+
 SeqExpr :: { SeqExpr }
   : Expr { SeqExpr $1 }
   | SeqExprParens { $1 }
+
 SeqExprParens :: { SeqExpr }
   : "(" SeqExprParens ")" { $2 }
   | SeqExpr "and"        SeqExpr { SeqExprAnd        $1 $3 }
@@ -816,9 +855,11 @@ SeqExprParens :: { SeqExpr }
   | SeqExpr "##" CycleDelayRange SeqExpr { SeqExprDelay (Just $1) $3 $4 }
   |         "##" CycleDelayRange SeqExpr { SeqExprDelay (Nothing) $2 $3 }
   | "first_match" "(" SeqExpr SeqMatchItems ")" { SeqExprFirstMatch $3 $4 }
+
 SeqMatchItems :: { [SeqMatchItem] }
   : "," SeqMatchItem               { [$2] }
   | SeqMatchItems "," SeqMatchItem { $1 ++ [$3] }
+
 SeqMatchItem :: { SeqMatchItem }
   : ForStepAssignment   { SeqMatchAsgn $1 }
   | Identifier CallArgs { SeqMatchCall $1 $2 }
@@ -841,32 +882,41 @@ ActionBlock :: { ActionBlock }
 AttributeInstances :: { [Attr] }
   : {- empty -}                          { [] }
   | AttributeInstance AttributeInstances { $1 : $2 }
+
 AttributeInstance :: { Attr }
   : AttributeInstanceP { snd $1 }
+
 AttributeInstancesP :: { (Position, [Attr]) }
   : AttributeInstanceP AttributeInstances { (fst $1, snd $1 : $2) }
+
 AttributeInstanceP :: { (Position, Attr) }
   : "(*" AttrSpecs "*)" { withPos $1 $ Attr $2 }
+
 AttrSpecs :: { [AttrSpec] }
   : AttrSpec               { [$1] }
   | AttrSpecs "," AttrSpec { $1 ++ [$3] }
+
 AttrSpec :: { AttrSpec }
   : Identifier OptAsgn { ($1, $2) }
 
 NInputGates :: { [(Expr, Identifier, [Range], LHS, [Expr])] }
   : NInputGate                 { [$1] }
   | NInputGates "," NInputGate { $1 ++ [$3]}
+
 NOutputGates :: { [(Expr, Identifier, [Range], [LHS], Expr)] }
   : NOutputGate                  { [$1] }
   | NOutputGates "," NOutputGate { $1 ++ [$3]}
 
 NInputGate :: { (Expr, Identifier, [Range], LHS, [Expr]) }
   : DelayControlOrNil OptGateName "(" LHS "," Exprs ")" { ($1, fst $2, snd $2, $4, $6) }
+
 NOutputGate :: { (Expr, Identifier, [Range], [LHS], Expr) }
   : DelayControlOrNil OptGateName "(" Exprs "," Expr ")" { ($1, fst $2, snd $2, map toLHS $4, $6) }
+
 DelayControlOrNil :: { Expr }
   : DelayControl { $1 }
   | {- empty -} { Nil }
+
 OptGateName :: { (Identifier, [Range]) }
   : Identifier Dimensions { ($1, $2) }
   | {- empty -} { ("", []) }
@@ -888,6 +938,7 @@ NInputGateKW :: { NInputGateKW }
   | "pmos"   { GatePmos   }
   | "rnmos"  { GateRnmos  }
   | "rpmos"  { GateRpmos  }
+
 NOutputGateKW :: { NOutputGateKW }
   : "buf"  { GateBuf  }
   | "not"  { GateNot  }
@@ -899,16 +950,19 @@ DriveStrength :: { (Strength0, Strength1) }
   | "(" Strength1 "," "highz0"  ")" { (Highz0, $2    ) }
   | "(" "highz0"  "," Strength1 ")" { (Highz0, $4    ) }
   | "(" "highz1"  "," Strength0 ")" { ($4    , Highz1) }
+
 Strength0 :: { Strength0 }
   : "supply0" { Supply0 }
   | "strong0" { Strong0 }
   | "pull0"   { Pull0   }
   | "weak0"   { Weak0   }
+
 Strength1 :: { Strength1 }
   : "supply1" { Supply1 }
   | "strong1" { Strong1 }
   | "pull1"   { Pull1   }
   | "weak1"   { Weak1   }
+
 ChargeStrength :: { ChargeStrength }
   : "(" "small"  ")" { Small  }
   | "(" "medium" ")" { Medium }
@@ -917,6 +971,7 @@ ChargeStrength :: { ChargeStrength }
 LHSAsgns :: { [(LHS, Expr)] }
   : LHSAsgn                   { [$1] }
   | LHSAsgns "," LHSAsgn { $1 ++ [$3] }
+
 LHSAsgn :: { (LHS, Expr) }
   : LHS "=" Expr { ($1, $3) }
 
@@ -924,6 +979,7 @@ PackageItems :: { [PackageItem] }
   : {- empty -}                      { [] }
   | ";" PackageItems                 { $2 }
   | PITrace PackageItem PackageItems { addPITrace $1 ($2 ++ $3) }
+
 PackageItem :: { [PackageItem] }
   : PackageOrClassItem { $1}
   | TaskOrFunction { [$1] }
@@ -932,9 +988,11 @@ ClassItems :: { [ClassItem] }
   : {- empty -}                  { [] }
   | ";" ClassItems               { $2 }
   | CITrace ClassItem ClassItems { addCITrace $1 ($2 ++ $3) }
+
 ClassItem :: { [ClassItem] }
   : ClassItemQualifier PackageOrClassItem { map ($1, ) $2 }
   | ClassItemQualifier TaskOrFunction     { [($1, $2)] }
+
 ClassItemQualifier :: { Qualifier }
   : {- empty -} { QNone }
   | "static"    { QStatic }
@@ -945,6 +1003,7 @@ PackageOrClassItem :: { [PackageItem] }
   : DeclTokens(";")    { map Decl $ parseDTsAsDecl $1 }
   | ParameterDecl(";") { map Decl $1 }
   | NonDeclPackageItem { $1 }
+
 NonDeclPackageItem :: { [PackageItem] }
   : Typedef              { [Decl $1] }
   | ImportOrExport       { $1 }
@@ -957,21 +1016,26 @@ ImportOrExport :: { [PackageItem] }
   : "import" PackageImportItems ";" { map (uncurry Import) $2 }
   | "export" PackageImportItems ";" { map (uncurry Export) $2 }
   | "export" "*" "::" "*" ";"       { [Export "" ""] }
+
 TaskOrFunction :: { PackageItem }
   : "function" Lifetime FuncRetAndName    TFItems DeclsAndStmts endfunction StrTag {% checkTag (snd $3) $7 $ Function $2 (fst $3) (snd $3) (map makeInput $4 ++ fst $5) (snd $5) }
   | "task"     Lifetime Identifier        TFItems DeclsAndStmts endtask     StrTag {% checkTag $3       $7 $ Task     $2 $3                ($4 ++ fst $5) (snd $5) }
+
 Typedef :: { Decl }
   : "typedef" Type Identifier ";" { ParamType Localparam $3 $2 }
   | "typedef" Type Identifier DimensionsNonEmpty ";" { ParamType Localparam $3 (UnpackedType $2 $4) }
   | "typedef" TypedefRef Identifier ";" { ParamType Localparam $3 $2 }
+
 TypedefRef :: { Type }
   : Identifier              "." Identifier { TypedefRef $ Dot      (Ident $1)     $3 }
   | Identifier "[" Expr "]" "." Identifier { TypedefRef $ Dot (Bit (Ident $1) $3) $6 }
+
 ForwardTypedef :: { [PackageItem] }
   : "typedef"          Identifier { [] }
   | "typedef" "enum"   Identifier { [] }
   | "typedef" "struct" Identifier { [] }
   | "typedef" "union"  Identifier { [] }
+
 TimeunitsDeclaration :: { [PackageItem] }
   : "timeunit" Time          ";" { [] }
   | "timeunit" Time "/" Time ";" { [] }
@@ -1008,9 +1072,11 @@ Directive :: { String }
   | "`nounconnected_drive" { tokenString $1 }
   | "`default_nettype" DefaultNetType { tokenString $1 ++ " " ++ $2 }
   | "`resetall"            { tokenString $1 }
+
 Drive :: { String }
   : "pull0" { tokenString $1 }
   | "pull1" { tokenString $1 }
+
 DefaultNetType :: { String }
   : NetTypeP { show $ snd $1 }
   | Identifier { $1 }
@@ -1018,6 +1084,7 @@ DefaultNetType :: { String }
 PackageImportItems :: { [(Identifier, Identifier)] }
   : PackageImportItem                        { [$1] }
   | PackageImportItems "," PackageImportItem { $1 ++ [$3] }
+
 PackageImportItem :: { (Identifier, Identifier) }
   : Identifier "::" Identifier { ($1, $3) }
   | Identifier "::" "*"        { ($1, "") }
@@ -1039,6 +1106,7 @@ AlwaysKW :: { AlwaysKW }
 Lifetime :: { Lifetime }
   : {- empty -} { Inherit }
   | ExplicitLifetime { $1 }
+
 ExplicitLifetime :: { Lifetime }
   : "static"    { Static    }
   | "automatic" { Automatic }
@@ -1056,9 +1124,11 @@ ParamType :: { Type }
 Dimensions :: { [Range] }
   : {- empty -}        { [] }
   | DimensionsNonEmpty { $1 }
+
 DimensionsNonEmpty :: { [Range] }
   : Dimension                    { [$1] }
   | DimensionsNonEmpty Dimension { $1 ++ [$2] }
+
 Dimension :: { Range }
   : Range        { $1 }
   | "[" Expr "]" { (RawNum 0, BinOp Sub $2 (RawNum 1)) }
@@ -1066,6 +1136,7 @@ Dimension :: { Range }
 DeclAsgns :: { [(Identifier, Expr, [Range])] }
   : DeclAsgn               { [$1] }
   | DeclAsgns "," DeclAsgn { $1 ++ [$3] }
+
 DeclAsgn :: { (Identifier, Expr, [Range]) }
   : Identifier Dimensions OptAsgn { ($1, $3, $2) }
 
@@ -1097,9 +1168,11 @@ LHSs :: { [LHS] }
 
 PortBindingsP:: { (Position, [PortBinding]) }
   : "(" PortBindingsInside ")" {% checkPortBindings $2 >>= return . withPos $1 }
+
 PortBindingsInside :: { [PortBinding] }
   : OptPortBinding                        { [$1] }
   | OptPortBinding "," PortBindingsInside { $1 : $3}
+
 OptPortBinding :: { PortBinding }
   : {- empty -} { ("", Nil) }
   | PortBinding { $1 }
@@ -1114,9 +1187,11 @@ PortBinding :: { PortBinding }
 ParamBindings :: { [ParamBinding] }
   : "#" "("                     ")" { [] }
   | "#" "(" ParamBindingsInside ")" {% checkParamBindings $3 }
+
 ParamBindingsInside :: { [ParamBinding] }
   : ParamBinding opt(",")                { [$1] }
   | ParamBinding "," ParamBindingsInside { $1 : $3}
+
 ParamBinding :: { ParamBinding }
   : "." Identifier "(" TypeOrExpr ")" { ($2, $4) }
   | "." Identifier "("            ")" { ($2, Right Nil) }
@@ -1143,14 +1218,17 @@ StmtAsgn :: { Stmt }
   | Identifier "::" Identifier CallArgs ";" { Subroutine (PSIdent $1 $3) $4 }
   | Identifier ParamBindings "::" Identifier          ";" { Subroutine (CSIdent $1 $2 $4) (Args [] []) }
   | Identifier ParamBindings "::" Identifier CallArgs ";" { Subroutine (CSIdent $1 $2 $4) $5 }
+
 StmtNonAsgn :: { Stmt }
   : StmtBlock(BlockKWSeq, end ) { $1 }
   | StmtBlock(BlockKWPar, join) { $1 }
   |                StmtNonBlock { $1 }
   | Identifier ":" StmtNonBlock { Block Seq $1 [] [$3] }
+
 StmtBlock(begin, end) :: { Stmt }
   :                begin StrTag DeclsAndStmts end StrTag {% checkTag $2 $5 $ uncurry (Block $1 $2) $3 }
   | Identifier ":" begin        DeclsAndStmts end StrTag {% checkTag $1 $6 $ uncurry (Block $3 $1) $4 }
+
 StmtNonBlock :: { Stmt }
   : ";" { Null }
   | Unique "if" "(" Expr ")" Stmt "else" Stmt  { If $1 $4 $6 $8   }
@@ -1192,6 +1270,7 @@ CaseStmt :: { Stmt }
 
 BlockKWPar :: { BlockKW }
   : "fork" { Par }
+
 BlockKWSeq :: { BlockKW }
   : "begin" { Seq }
 
@@ -1212,9 +1291,11 @@ ForCond :: { Expr }
 ForStep :: { [(LHS, AsgnOp, Expr)] }
   : {- empty -}     { [] }
   | ForStepNonEmpty { $1 }
+
 ForStepNonEmpty :: { [(LHS, AsgnOp, Expr)] }
   : ForStepAssignment                     { [$1] }
   | ForStepNonEmpty "," ForStepAssignment { $1 ++ [$3] }
+
 ForStepAssignment :: { (LHS, AsgnOp, Expr) }
   : LHS AsgnOp Expr { ($1, $2, $3) }
   | IncOrDecOperator LHS { ($2, AsgnOp $1, RawNum 1) }
@@ -1222,9 +1303,11 @@ ForStepAssignment :: { (LHS, AsgnOp, Expr) }
 
 IdxVars :: { [Identifier] }
   : "[" IdxVarsInside "]" { $2 }
+
 IdxVarsInside :: { [Identifier] }
   : IdxVar                   { [$1] }
   | IdxVar "," IdxVarsInside { $1 : $3 }
+
 IdxVar :: { Identifier }
   : {- empty -} { "" }
   | Identifier  { $1 }
@@ -1233,6 +1316,7 @@ DeclsAndStmts :: { ([Decl], [Stmt]) }
   : StmtTrace DeclOrStmt DeclsAndStmts {% combineDeclsAndStmts $2 $3 }
   | StmtTrace StmtNonAsgn Stmts        { ([], $1 : $2 : $3) }
   | StmtTrace {- empty -}              { ([], []) }
+
 DeclOrStmt :: { ([Decl], [Stmt]) }
   : DeclTokens(";")    { parseDTsAsDeclOrStmt $1 }
   | ParameterDecl(";") { ($1, []) }
@@ -1243,6 +1327,7 @@ ParameterDecl(delim) :: { [Decl] }
   | ParameterDeclKW ParamType DeclAsgns delim { makeParamDecls $1 $2 $3 }
   | ParameterDeclKW TypeAlias DeclAsgns delim { makeParamDecls $1 $2 $3 }
   | ParameterDeclKW "type"    TypeAsgns delim { makeParamTypeDecls $1 $3 }
+
 ParameterDeclKW :: { (Position, ParamScope) }
   : "parameter"  { withPos $1 Parameter  }
   | "localparam" { withPos $1 Localparam }
@@ -1250,6 +1335,7 @@ ParameterDeclKW :: { (Position, ParamScope) }
 TypeAsgns :: { [(Identifier, Type)] }
   : TypeAsgn               { [$1] }
   | TypeAsgns "," TypeAsgn { $1 ++ [$3] }
+
 TypeAsgn :: { (Identifier, Type) }
   : Identifier "=" Type { ($1, $3) }
   | Identifier          { ($1, UnknownType) }
@@ -1261,9 +1347,11 @@ ClockingEvent :: { EventExpr }
 TimingControl :: { Timing }
   : DelayOrEvent { $1 }
   | CycleDelay   { Cycle $1 }
+
 DelayOrEvent :: { Timing }
   : DelayControl { Delay $1 }
   | EventControl { Event $1 }
+
 DelayControl :: { Expr }
   : "#" Number { Number $2 }
   | "#" Real   { Real   $2 }
@@ -1273,8 +1361,10 @@ DelayControl :: { Expr }
   | "#"                               Identifier { Ident         $2 }
   | "#" Identifier               "::" Identifier { PSIdent $2    $4 }
   | "#" Identifier ParamBindings "::" Identifier { CSIdent $2 $3 $5 }
+
 CycleDelay :: { Expr }
   : "##" Expr { $2 }
+
 EventControl :: { Event }
   : "@*"            { EventStar }
   | "@" "(*)"       { EventStar }
@@ -1284,14 +1374,17 @@ EventControl :: { Event }
   | "@" "*"         { EventStar }
   | "@" "(" EventExpr ")" { EventExpr $3 }
   | "@" Identifier        { EventExpr $ EventExprEdge NoEdge $ Ident $2 }
+
 EventExpr :: { EventExpr }
   : Expr { EventExprEdge NoEdge $1 }
   | EventExprComplex { $1 }
+
 EventExprComplex :: { EventExpr }
   : "(" EventExprComplex ")" { $2 }
   | Edge Expr { EventExprEdge $1 $2 }
   | EventExpr "or" EventExpr { EventExprOr $1 $3 }
   | EventExpr ","  EventExpr { EventExprOr $1 $3 }
+
 Edge :: { Edge }
   : "posedge" { Posedge }
   | "negedge" { Negedge }
@@ -1305,12 +1398,15 @@ CaseKW :: { CaseKW }
 Cases :: { [Case] }
   : Case       { [$1] }
   | Case Cases { $1 : $2 }
+
 Case :: { Case }
   : Exprs         ":"  Stmt { ($1, $3) }
   | "default" opt(":") Stmt { ([], $3) }
+
 InsideCases :: { [Case] }
   : InsideCase             { [$1] }
   | InsideCase InsideCases { $1 : $2 }
+
 InsideCase :: { Case }
   : OpenRangeList ":"  Stmt { ($1, $3) }
   | "default" opt(":") Stmt { ([], $3) }
@@ -1329,21 +1425,26 @@ Time :: { String }
 
 CallArgs :: { Args }
   : "(" CallArgsInside ")" { $2 }
+
 CallArgsInside :: { Args }
   : {- empty -}                        { Args [        ] [] }
   |                NamedCallArgsFollow { Args [        ] $1 }
   | Expr                 NamedCallArgs { Args [$1      ] $2 }
   |      UnnamedCallArgs NamedCallArgs { Args (Nil : $1) $2 }
   | Expr UnnamedCallArgs NamedCallArgs { Args ($1  : $2) $3 }
+
 UnnamedCallArgs :: { [Expr] }
   : "," ExprOrNil                 { [$2] }
   | UnnamedCallArgs "," ExprOrNil { $1 ++ [$3] }
+
 NamedCallArgs :: { [(Identifier, Expr)] }
   : {- empty -}        { [] }
   | "," NamedCallArgsFollow  { $2 }
+
 NamedCallArgsFollow :: { [(Identifier, Expr)] }
   : NamedCallArg                         { [$1] }
   | NamedCallArgsFollow "," NamedCallArg { $1 ++ [$3] }
+
 NamedCallArg :: { (Identifier, Expr) }
   : "." Identifier "(" ExprOrNil ")" { ($2, $4) }
 
@@ -1358,6 +1459,7 @@ TypeOrExpr :: { TypeOrExpr }
 OpenRangeList :: { [Expr] }
   : ValueRange                   { [$1] }
   | OpenRangeList "," ValueRange { $1 ++ [$3] }
+
 ValueRange :: { Expr }
   : Expr  { $1 }
   | Range { Range Nil NonIndexed $1 }
@@ -1444,18 +1546,23 @@ ExprOrNil :: { Expr }
 PatternItems :: { [(TypeOrExpr, Expr)] }
   : PatternNamedItems   { $1 }
   | PatternUnnamedItems { zip (repeat $ Right Nil) $1 }
+
 PatternNamedItems :: { [(TypeOrExpr, Expr)] }
   : PatternNamedItem                       { [$1] }
   | PatternNamedItems "," PatternNamedItem { $1 ++ [$3] }
+
 PatternNamedItem :: { (TypeOrExpr, Expr) }
   : PatternName ":" Expr { ($1, $3) }
+
 PatternName :: { TypeOrExpr }
   : Expr        { Right $1 }
   | PartialType { Left $ $1 Unspecified [] }
   | "default"   { Left UnknownType }
+
 PatternUnnamedItems :: { [Expr] }
   :                         PatternUnnamedItem { [$1] }
   | PatternUnnamedItems "," PatternUnnamedItem { $1 ++ [$3] }
+
 PatternUnnamedItem :: { Expr }
   : Expr        { $1 }
   | Expr Concat { Repeat $1 $2 }
@@ -1466,6 +1573,7 @@ Concat :: { [Expr] }
 StreamOp :: { StreamOp }
   : "<<" { StreamL }
   | ">>" { StreamR }
+
 StreamSize :: { Expr }
   : TypeNonIdent { DimsFn FnBits (Left $1) }
   | Expr         { $1 }
@@ -1485,15 +1593,18 @@ GenItem :: { GenItem }
   | MITrace "generate" GenItems "endgenerate" { genItemsToGenItem $3 }
   | MITrace ConditionalGenerateConstruct { $2 }
   | MITrace LoopGenerateConstruct        { $2 }
+
 ConditionalGenerateConstruct :: { GenItem }
   : "if" "(" Expr ")" GenItemOrNull "else" GenItemOrNull { GenIf $3 $5 $7      }
   | "if" "(" Expr ")" GenItemOrNull %prec NoElse         { GenIf $3 $5 GenNull }
   | "case" "(" Expr ")" GenCases "endcase" { GenCase $3 $ validateCases $4 $5 }
+
 LoopGenerateConstruct :: { GenItem }
   : "for" "(" GenvarInitialization ";" Expr ";" GenvarIteration ")" GenItem { $3 $5 $7 $9 }
 
 GenBlock :: { (Identifier, [GenItem]) }
   : GenBlockBegin GenItems end StrTag {% checkTag $1 $4 ($1, $2) }
+
 GenBlockBegin :: { Identifier }
   : "begin" StrTag         { $2 }
   | Identifier ":" "begin" { $1 }
@@ -1501,6 +1612,7 @@ GenBlockBegin :: { Identifier }
 GenCases :: { [GenCase] }
   : GenCase          { [$1] }
   | GenCase GenCases { $1 : $2 }
+
 GenCase :: { GenCase }
   : Exprs         ":"  GenItemOrNull { ($1, $3) }
   | "default" opt(":") GenItemOrNull { ([], $3) }
@@ -1517,8 +1629,10 @@ GenvarIteration :: { (Identifier, AsgnOp, Expr) }
 AsgnOp :: { AsgnOp }
   : "=" { AsgnOpEq }
   | AsgnBinOp { $1 }
+
 AsgnBinOp :: { AsgnOp }
   : AsgnBinOpP { snd $1 }
+
 AsgnBinOpP :: { (Position, AsgnOp) }
   : "+="   { withPos $1 $ AsgnOp Add }
   | "-="   { withPos $1 $ AsgnOp Sub }
@@ -1535,6 +1649,7 @@ AsgnBinOpP :: { (Position, AsgnOp) }
 
 IncOrDecOperator :: { BinOp }
   : IncOrDecOperatorP { snd $1 }
+
 IncOrDecOperatorP :: { (Position, BinOp) }
   : "++" { withPos $1 Add }
   | "--" { withPos $1 Sub }
@@ -1543,6 +1658,7 @@ DimsFn :: { DimsFn }
   : "$bits"                { FnBits               }
   | "$dimensions"          { FnDimensions         }
   | "$unpacked_dimensions" { FnUnpackedDimensions }
+
 DimFn :: { DimFn }
   : "$left"                { FnLeft               }
   | "$right"               { FnRight              }
@@ -1553,6 +1669,7 @@ DimFn :: { DimFn }
 
 Severity :: { Severity }
   : SeverityP { snd $1 }
+
 SeverityP :: { (Position, Severity) }
   : "$info"    { withPos $1 SeverityInfo    }
   | "$warning" { withPos $1 SeverityWarning }
@@ -1561,16 +1678,22 @@ SeverityP :: { (Position, Severity) }
 
 MITrace :: { ModuleItem }
   : PITrace { MIPackageItem $1 }
+
 PITrace :: { PackageItem }
   : DeclTrace { Decl $1 }
+
 CITrace :: { ClassItem }
   : PITrace { (QNone, $1) }
+
 DeclTrace :: { Decl }
   : Trace { CommentDecl $1 }
+
 StmtTrace :: { Stmt }
   : Trace { CommentStmt $1 }
+
 Trace :: { String }
   : position { "Trace: " ++ show $1 }
+
 position :: { Position }
   : {- empty -} {% gets pPosition }
 
