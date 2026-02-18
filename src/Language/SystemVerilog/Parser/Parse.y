@@ -117,6 +117,7 @@ import Language.SystemVerilog.Parser.Tokens
 "endproperty"      { Token KW_endproperty  _ _ }
 "endspecify"       { Token KW_endspecify   _ _ }
 "endsequence"      { Token KW_endsequence  _ _ }
+"endstage"         { Token KW_endstage     _ _ }
 "endtable"         { Token KW_endtable     _ _ }
 "endtask"          { Token KW_endtask      _ _ }
 "enum"             { Token KW_enum         _ _ }
@@ -243,6 +244,7 @@ import Language.SystemVerilog.Parser.Tokens
 "specify"          { Token KW_specify      _ _ }
 "specparam"        { Token KW_specparam    _ _ }
 "static"           { Token KW_static       _ _ }
+"stage"            { Token KW_stage        _ _ }
 "string"           { Token KW_string       _ _ }
 "strong"           { Token KW_strong       _ _ }
 "strong0"          { Token KW_strong0      _ _ }
@@ -749,6 +751,7 @@ NonGenerateModuleItem :: { [ModuleItem] }
   | "defparam" LHSAsgns ";"              { map (uncurry Defparam) $2 }
   | "assign" AssignOption LHSAsgns ";"   { map (uncurry $ Assign $2) $3 }
   | AlwaysKW Stmt                        { [AlwaysC $1 $2] }
+  | StageDeclaration                     { $1 }
   | "initial" Stmt                       { [Initial $2] }
   | "final"   Stmt                       { [Final   $2] }
   | "genvar" Identifiers ";"             { map Genvar $2 }
@@ -1096,6 +1099,12 @@ FuncRetAndName :: { (Type, Identifier) }
   |         DimensionsNonEmpty Identifier { (Implicit Unspecified $1, $2) }
   | Signing DimensionsNonEmpty Identifier { (Implicit $1          $2, $3) }
   | "void"                     Identifier { (Void                   , $2) }
+
+StageKW :: { StageKW }
+  : "stage" { StageKW }
+
+StageDeclaration :: { [ModuleItem] }
+  : StageKW "(" Identifier ")" "endstage" { [StageC $1 (Stage $3 []) ] }
 
 AlwaysKW :: { AlwaysKW }
   : "always"       { Always      }

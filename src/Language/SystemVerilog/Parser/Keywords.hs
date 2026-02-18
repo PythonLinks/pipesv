@@ -16,7 +16,7 @@ import Language.SystemVerilog.Parser.Tokens
 newKeywords :: [(String, [TokenName])]
 newKeywords = [
 
-    ("1364-1995", [KW_always, KW_and, KW_assign, KW_begin, KW_buf, KW_bufif0,
+    ("1364-1995", [KW_stage, KW_always, KW_and, KW_assign, KW_begin, KW_buf, KW_bufif0,
     KW_bufif1, KW_case, KW_casex, KW_casez, KW_cmos, KW_deassign, KW_default,
     KW_defparam, KW_disable, KW_edge, KW_else, KW_end, KW_endcase,
     KW_endfunction, KW_endmodule, KW_endprimitive, KW_endspecify, KW_endtable,
@@ -42,7 +42,7 @@ newKeywords = [
 
     ("1364-2005", [KW_uwire]),
 
-    ("1800-2005", [KW_alias, KW_always_comb, KW_always_ff, KW_always_latch,
+    ("1800-2005", [KW_alias, KW_stage, KW_always_comb, KW_always_ff, KW_always_latch,
     KW_assert, KW_assume, KW_before, KW_bind, KW_bins, KW_binsof, KW_bit,
     KW_break, KW_byte, KW_chandle, KW_class, KW_clocking, KW_const,
     KW_constraint, KW_context, KW_continue, KW_cover, KW_covergroup,
@@ -62,7 +62,7 @@ newKeywords = [
 
     ("1800-2009", [KW_accept_on, KW_checker, KW_endchecker, KW_eventually,
     KW_global, KW_implies, KW_let, KW_nexttime, KW_reject_on, KW_restrict,
-    KW_s_always, KW_s_eventually, KW_s_nexttime, KW_s_until, KW_s_until_with,
+    KW_s_stage, KW_s_always, KW_s_eventually, KW_s_nexttime, KW_s_until, KW_s_until_with,
     KW_strong, KW_sync_accept_on, KW_sync_reject_on, KW_unique0, KW_until,
     KW_until_with, KW_untyped, KW_weak]),
 

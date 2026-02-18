@@ -115,6 +115,7 @@ tokens :-
 
     "accept_on"        { tok KW_accept_on    }
     "alias"            { tok KW_alias        }
+    "stage"            { tok KW_stage        }
     "always"           { tok KW_always       }
     "always_comb"      { tok KW_always_comb  }
     "always_ff"        { tok KW_always_ff    }
@@ -178,6 +179,7 @@ tokens :-
     "endprogram"       { tok KW_endprogram   }
     "endproperty"      { tok KW_endproperty  }
     "endspecify"       { tok KW_endspecify   }
+    "endstage"         { tok KW_endstage     }   
     "endsequence"      { tok KW_endsequence  }
     "endtable"         { tok KW_endtable     }
     "endtask"          { tok KW_endtask      }
@@ -288,7 +290,8 @@ tokens :-
     "rtran"            { tok KW_rtran        }
     "rtranif0"         { tok KW_rtranif0     }
     "rtranif1"         { tok KW_rtranif1     }
-    "s_always"         { tok KW_s_always     }
+    "s_stage"          { tok KW_s_stage      }
+    "s_always"         { tok KW_s_always     }    
     "s_eventually"     { tok KW_s_eventually }
     "s_nexttime"       { tok KW_s_nexttime   }
     "s_until"          { tok KW_s_until      }

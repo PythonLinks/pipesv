@@ -1,7 +1,44 @@
-# sv2v: SystemVerilog to Verilog
+# pipeSV  Pipelined System Verilog
 
-sv2v converts SystemVerilog ([IEEE 1800-2017]) to Verilog ([IEEE 1364-2005]),
-with an emphasis on supporting synthesizable language constructs.
+Pipelines are very important in digital circuit design, but they are
+not directly supported by System Verilog; there are no `stage` nor
+`pipeline` keywords. PipeSV adds the `stage` and `pipeline` keywords,
+with arguments, to System Verilog.  This is a powerful abstraction,
+but the resulting System Verilog code will be easy to
+understand. PipeSV is a small modification to the mature, and well
+tested `sv2v` Haskell application described below.  So it will also be
+possible to generate Verilog, and synthesize with Yosys.
+
+This [pipeline
+abstraction](https://docs.spade-lang.org/pipelines.html) comes from
+the Spade HDL. SpinalHDL also has great pipeline abstractions.
+Initially the keyword `stage` is being implemented, with arguments
+`stage(1)` or `stage(decode)`.  Within stages the register names can
+be the same, the PipeSV transpiler makes small changes to the output
+Verilog or System Verilog so that the circuits can be synthesized.
+Later the `pipeline(n)` keyword will be added, where `n` refers to the
+number of stages, allowing multiple pipelines to cooperate with error
+checking on the delays.
+
+Why is this approach being taken?  Most of the HDL's based on verious
+programming languages such as Python, Rust, Haskell and others
+generate incomprehensible SystemVerilog or Verilog.  This approach
+uses System Verilog as its key language and just adds two very easy to
+understand key words.  The output can be either easy to understand and
+debug System Verilog, or, using sv2v, somewhat more difficult to
+understand Verilog.
+
+What is `sv2v`? ``sv2v` converts SystemVerilog ([IEEE 1800-2017]) to
+Verilog ([IEEE 1364-2005]), with a focus on the [extended version of
+Verilog](https://yosyshq.readthedocs.io/projects/yosys/en/latest/using_yosys/verilog.html#supported-features-from-systemverilog)
+supported by the open source [Yosys synthesis
+suite](https://yosyshq.net/yosys/).  `sv2v` has an active user base
+among those wishing to synthesize SystemVerilog with Yosys.  `sv2v`
+has an extensive test suite, over 1000 files, meaning that it is very
+mature software.  PipeSV will be a comparitively small modification to
+`sv2v`. (Hopefully) There is also a C++ System Verilog to Verilog
+converter, but Haskell will hopefully be a more productive
+environment.  So far Haskell looks really promising and quite fast. 
 
 [IEEE 1800-2017]: https://ieeexplore.ieee.org/servlet/opac?punumber=8299593
 [IEEE 1364-2005]: https://ieeexplore.ieee.org/servlet/opac?punumber=10779
@@ -11,12 +48,8 @@ tool for converting SystemVerilog to Verilog. While methods for performing this
 conversion already exist, they generally either rely on commercial tools, or are
 limited in scope.
 
-This project was originally developed to target [Yosys], and so allows for
-disabling the conversion of (passing through) those [SystemVerilog features that
-Yosys supports].
 
-[Yosys]: https://yosyshq.net/yosys/
-[SystemVerilog features that Yosys supports]: https://github.com/YosysHQ/yosys#supported-features-from-systemverilog
+[SystemVerilog features that Yosys supports]: 
 
 The idea for this project was shared with me while I was an undergraduate at
 Carnegie Mellon University as part of a joint Computer Science and Electrical

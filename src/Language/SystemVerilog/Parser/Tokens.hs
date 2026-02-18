@@ -45,6 +45,7 @@ data TokenName
     | KW_dollar_fatal
     | KW_accept_on
     | KW_alias
+    | KW_stage
     | KW_always
     | KW_always_comb
     | KW_always_ff
@@ -109,6 +110,7 @@ data TokenName
     | KW_endproperty
     | KW_endspecify
     | KW_endsequence
+    | KW_endstage    
     | KW_endtable
     | KW_endtask
     | KW_enum
@@ -218,6 +220,7 @@ data TokenName
     | KW_rtran
     | KW_rtranif0
     | KW_rtranif1
+    | KW_s_stage
     | KW_s_always
     | KW_s_eventually
     | KW_s_nexttime

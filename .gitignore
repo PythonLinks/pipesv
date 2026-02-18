@@ -4,3 +4,4 @@ bin/
 .stack-work/
 .hpc/
 *.tix
+*~

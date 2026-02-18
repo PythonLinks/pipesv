@@ -575,6 +575,11 @@ traverseNodesM exprMapper declMapper typeMapper lhsMapper stmtMapper =
         lhs' <- lhsMapper lhs
         expr' <- exprMapper expr
         return $ Defparam lhs' expr'
+    moduleItemMapper (StageC kw stage) = do
+        -- Stage contains a String identifier and a list of ModuleItems
+        let (Stage ident items) = stage
+        items' <- mapM (traverseNestedModuleItemsM moduleItemMapper) items
+        return $ StageC kw (Stage ident items')
     moduleItemMapper (AlwaysC kw stmt) =
         stmtMapper stmt >>= return . AlwaysC kw
     moduleItemMapper (Initial stmt) =

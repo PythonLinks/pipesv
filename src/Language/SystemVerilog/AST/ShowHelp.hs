@@ -18,6 +18,7 @@ module Language.SystemVerilog.AST.ShowHelp
 
 import Data.List (intercalate)
 
+-- add a space to the right of 'show x'.
 showPad :: Show t => t -> String
 showPad x =
     if null str
@@ -25,6 +26,7 @@ showPad x =
         else str ++ " "
     where str = show x
 
+-- add a space to the left of 'show x'.
 showPadBefore :: Show t => t -> String
 showPadBefore x =
     if str == ""
@@ -32,6 +34,7 @@ showPadBefore x =
         else ' ' : str
     where str = show x
 
+-- if the next character is '\n', print it followed by a tab.
 indent :: String -> String
 indent = (:) '\t' . f
     where
@@ -39,21 +42,26 @@ indent = (:) '\t' . f
         f ('\n' : xs) = '\n' : '\t' : f xs
         f (x : xs) = x : f xs
 
+-- split lines with a '\n'.
 unlines' :: [String] -> String
 unlines' = intercalate "\n"
 
+-- merge an array of strings with ',  ' between each item.
 commas :: [String] -> String
 commas = intercalate ", "
 
+-- prints the parametes, each one indented on a new line.
 indentedParenList :: [String] -> String
 indentedParenList [] = "()"
 indentedParenList [x] = '(' : x ++ ")"
 indentedParenList l = "(\n" ++ (indent $ intercalate ",\n" l) ++ "\n)"
 
+-- changes the usual way to display an Either type. 
 showEither :: (Show a, Show b) => Either a b -> String
 showEither (Left  v) = show v
 showEither (Right v) = show v
 
+-- shows a block.  If there are two blocks, they are separated by a new line.
 showBlock :: (Show a, Show b) => [a] -> [b] -> String
 showBlock a [] = indent $ show a
 showBlock [] b = indent $ show b

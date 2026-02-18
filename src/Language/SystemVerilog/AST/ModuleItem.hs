@@ -9,6 +9,9 @@ module Language.SystemVerilog.AST.ModuleItem
     ( ModuleItem    (..)
     , PortBinding
     , ModportDecl
+    , Stage         (..)
+    , StageKW       (..)
+    , EndStageKW    (..)
     , AlwaysKW      (..)
     , NInputGateKW  (..)
     , NOutputGateKW (..)
@@ -32,6 +35,7 @@ import Language.SystemVerilog.AST.Type (Identifier, Strength0, Strength1)
 
 data ModuleItem
     = MIAttr     Attr ModuleItem
+    | StageC     StageKW Stage
     | AlwaysC    AlwaysKW Stmt
     | Assign     AssignOption LHS Expr
     | Defparam   LHS Expr
@@ -51,6 +55,7 @@ data ModuleItem
 instance Show ModuleItem where
     show (MIPackageItem i) = show i
     show (MIAttr attr mi ) = printf "%s %s" (show attr) (show mi)
+    show (StageC      k b) = printf "%s %s" (show k) (show b)
     show (AlwaysC     k b) = printf "%s %s" (show k) (show b)
     show (Assign    o a b) = printf "assign %s%s = %s;" (showPad o) (show a) (show b)
     show (Defparam    a b) = printf "defparam %s = %s;" (show a) (show b)
@@ -99,6 +104,43 @@ type PortBinding = (Identifier, Expr)
 
 type ModportDecl = (Direction, Identifier, Expr)
 
+data StageKW = StageKW
+     deriving Eq
+
+data EndStageKW = EndStageKW
+     deriving Eq
+
+data Stage = Stage String [ModuleItem]
+   deriving Eq
+
+
+instance Show Stage where
+    show (Stage identifier items) =
+                     concat [
+                    "(",
+                    show identifier,
+                    ")\n",
+                    unlines' $ map show items,
+                    "endstage"]
+
+-- if the next character is '\n', print it followed by a tab.
+myIndent :: String -> String
+myIndent = (:) '\t'. f
+    where
+        f [] = []
+        f (['\n']) = ['\n']
+        f ('\n' : xs) = '\n' : '\t' : f xs
+        f (x : xs) = x : f xs
+
+
+
+instance Show StageKW where
+    show StageKW = "stage"
+
+instance Show EndStageKW where
+    show EndStageKW = "endstage"
+
+
 data AlwaysKW
     = Always
     | AlwaysComb
@@ -106,6 +148,7 @@ data AlwaysKW
     | AlwaysLatch
     deriving Eq
 
+    
 instance Show AlwaysKW where
     show Always      = "always"
     show AlwaysComb  = "always_comb"
