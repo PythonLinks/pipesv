@@ -63,21 +63,26 @@ data Stmt
     deriving Eq
 
 instance Show Stmt where
-    showList l _ = unlines' $ map show l
+    -- Original showlist shows comment, new one filters them out. 
+    -- showList l _ = unlines' $ map show l
+    showList l _ = unlines' $ map (("\t" ++) . show) $ filter (not . isComment) l
+        where isComment (CommentStmt _) = True
+              isComment _ = False
+
     show (StmtAttr attr stmt) = printf "%s\n%s" (show attr) (show stmt)
     show (Block kw name decls stmts) =
-        printf "%s%s\n%s\n%s" (show kw) header body (blockEndToken kw)
+        printf "%s%s\n%s%s" (show kw) header body (blockEndToken kw)
         where
             header = if null name then "" else " : " ++ name
-            body = showBlock decls stmts
+            body = unlines [showBlock decls stmts]
     show (Case u kw e cs) =
-        printf "%s%s (%s)%s\n%s\nendcase" (showPad u) (show kw) (show e)
+        printf "%s%s (%s)%s\nHere4%s\nendcase" (showPad u) (show kw) (show e)
             insideStr bodyStr
         where
             insideStr = if kw == CaseInside then " inside" else ""
             bodyStr = indent $ unlines' $ map showCase cs
     show (For inits cond assigns stmt) =
-        printf "for (%s; %s; %s)\n%s"
+        printf "for (%s; %s; %s)\nHEre5%s"
             (showInits inits)
             (show cond)
             (commas $ map showAssign assigns)
@@ -114,14 +119,14 @@ instance Show Stmt where
     show (Continue     ) = "continue;"
     show (Break        ) = "break;"
     show (Null         ) = ";"
-    show (CommentStmt c) = "// " ++ c
+    show (CommentStmt c) = "//STMt " ++ c
 
 showAssign :: (LHS, AsgnOp, Expr) -> String
 showAssign (l, op, e) = (showPad l) ++ (showPad op) ++ (show e)
 
 showBranch :: Stmt -> String
 showBranch (Block Seq "" [] stmts@[CommentStmt{}, _]) =
-    '\n' : (indent $ show stmts)
+    '\n':'H':'E' : (indent $ show stmts)
 showBranch block@Block{} = ' ' : show block
 showBranch stmt = '\n' : (indent $ show stmt)
 

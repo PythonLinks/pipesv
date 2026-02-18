@@ -1103,8 +1103,11 @@ FuncRetAndName :: { (Type, Identifier) }
 StageKW :: { StageKW }
   : "stage" { StageKW }
 
+
+
 StageDeclaration :: { [ModuleItem] }
-  : StageKW "(" Identifier ")" "endstage" { [StageC $1 (Stage $3 []) ] }
+  : StageKW "(" Identifier ")" ModuleItems "endstage"
+                    { [StageC $1 (Stage $3 $5)] }
 
 AlwaysKW :: { AlwaysKW }
   : "always"       { Always      }

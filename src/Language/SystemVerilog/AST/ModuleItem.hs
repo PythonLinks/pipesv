@@ -56,7 +56,7 @@ instance Show ModuleItem where
     show (MIPackageItem i) = show i
     show (MIAttr attr mi ) = printf "%s %s" (show attr) (show mi)
     show (StageC      k b) = printf "%s %s" (show k) (show b)
-    show (AlwaysC     k b) = printf "%s %s" (show k) (show b)
+    show (AlwaysC     k b) = printf "%s %s" (show k)  (show b)
     show (Assign    o a b) = printf "assign %s%s = %s;" (showPad o) (show a) (show b)
     show (Defparam    a b) = printf "defparam %s = %s;" (show a) (show b)
     show (Genvar      x  ) = printf "genvar %s;" x
@@ -113,25 +113,17 @@ data EndStageKW = EndStageKW
 data Stage = Stage String [ModuleItem]
    deriving Eq
 
-
 instance Show Stage where
     show (Stage identifier items) =
-                     concat [
-                    "(",
-                    show identifier,
-                    ")\n",
-                    unlines' $ map show items,
-                    "endstage"]
-
--- if the next character is '\n', print it followed by a tab.
-myIndent :: String -> String
-myIndent = (:) '\t'. f
-    where
-        f [] = []
-        f (['\n']) = ['\n']
-        f ('\n' : xs) = '\n' : '\t' : f xs
-        f (x : xs) = x : f xs
-
+        let itemStrs = map show items
+            body = unlines' itemStrs
+        in concat [
+                "(",
+                show identifier,
+                ")\n",
+                if null body then "" else (indent body ++ "\n"),
+                "endstage"
+            ]
 
 
 instance Show StageKW where

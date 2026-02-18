@@ -36,16 +36,17 @@ showPadBefore x =
 
 -- if the next character is '\n', print it followed by a tab.
 indent :: String -> String
-indent = (:) '\t' . f
-    where
-        f [] = []
-        f ('\n' : xs) = '\n' : '\t' : f xs
-        f (x : xs) = x : f xs
+indent s = intercalate "\n" $ map ('\t':) $ filter (not . null) $ lines s
 
 -- split lines with a '\n'.
-unlines' :: [String] -> String
-unlines' = intercalate "\n"
+-- ignore empty lines.
+-- delete leading spaces.
 
+unlines' :: [String] -> String
+unlines' [] = ""
+unlines' xs = intercalate "\n" $ map (dropWhile isSpace) $ filter (not . all isSpace) xs
+  where isSpace c = c `elem` [' ', '\t', '\n', '\r']
+  
 -- merge an array of strings with ',  ' between each item.
 commas :: [String] -> String
 commas = intercalate ", "
@@ -55,6 +56,7 @@ indentedParenList :: [String] -> String
 indentedParenList [] = "()"
 indentedParenList [x] = '(' : x ++ ")"
 indentedParenList l = "(\n" ++ (indent $ intercalate ",\n" l) ++ "\n)"
+
 
 -- changes the usual way to display an Either type. 
 showEither :: (Show a, Show b) => Either a b -> String

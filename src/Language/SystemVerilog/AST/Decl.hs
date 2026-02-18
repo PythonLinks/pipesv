@@ -26,7 +26,13 @@ data Decl
     deriving Eq
 
 instance Show Decl where
-    showList l _ = unlines' $ map show l
+    -- Original showlist shows comment, new one filters them out. 
+    --showList l _ = unlines' $ map show l
+    showList l _ = unlines' $ map show $ filter (not . isComment) l
+      where isComment (CommentDecl _) = True
+            isComment _ = False
+
+
     show (Param s t x e) = printf "%s %s%s%s;" (show s) (showPad t) x (showAssignment e)
     show (ParamType Localparam x (TypedefRef e)) =
         printf "typedef %s %s;" (show e) x
@@ -36,7 +42,7 @@ instance Show Decl where
         where tStr = if t == UnknownType then "" else  " = " ++ show t
     show (Variable d t x a e) = printf "%s%s%s%s%s;" (showPad d) (showPad t) x (showRanges a) (showAssignment e)
     show (Net  d n s t x a e) = printf "%s%s%s %s%s%s%s;" (showPad d) (show n) (showPadBefore s) (showPad t) x (showRanges a) (showAssignment e)
-    show (CommentDecl c) = "// " ++ c
+    show (CommentDecl c) = ""
 
 data Direction
     = Input
