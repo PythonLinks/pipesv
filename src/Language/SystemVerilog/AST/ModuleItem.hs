@@ -36,6 +36,7 @@ import Language.SystemVerilog.AST.Type (Identifier, Strength0, Strength1)
 data ModuleItem
     = MIAttr     Attr ModuleItem
     | StageC     StageKW Stage
+    | Statement  Stmt
     | AlwaysC    AlwaysKW Stmt
     | Assign     AssignOption LHS Expr
     | Defparam   LHS Expr
@@ -61,6 +62,7 @@ instance Show ModuleItem where
     show (Defparam    a b) = printf "defparam %s = %s;" (show a) (show b)
     show (Genvar      x  ) = printf "genvar %s;" x
     show (Generate    b  ) = printf "generate\n%s\nendgenerate" (indent $ show b)
+    show (Statement s)     = show s
     show (Modport     x l) = printf "modport %s(\n%s\n);" x (indent $ intercalate ",\n" $ map showModportDecl l)
     show (Initial     s  ) = printf "initial %s" (show s)
     show (Final       s  ) = printf   "final %s" (show s)

@@ -17,10 +17,3 @@ import Language.SystemVerilog.AST.Expr (ParamBinding, Range, Expr)
 
 
 
-data StageItem
-     = SIAlwaysC    AlwaysKW Stmt
-    | SIAssign     AssignOption LHS Expr
-    | SIGenvar     Identifier
-    | SIGenerate   [GenItem]
-    | SIInstance   Identifier [ParamBinding] Identifier [Range] [PortBinding]
-    deriving Eq

@@ -22,7 +22,6 @@ module Language.SystemVerilog.AST
     , module GenItem
     , module LHS
     , module ModuleItem
-    , module StageItem
     , module Number
     , module Op
     , module Stmt
@@ -44,7 +43,6 @@ import Language.SystemVerilog.AST.Expr as Expr
 import Language.SystemVerilog.AST.GenItem as GenItem
 import Language.SystemVerilog.AST.LHS as LHS
 import Language.SystemVerilog.AST.ModuleItem as ModuleItem
-import Language.SystemVerilog.AST.StageItem as StageItem
 import Language.SystemVerilog.AST.Number as Number
 import Language.SystemVerilog.AST.Op as Op
 import Language.SystemVerilog.AST.Stmt as Stmt

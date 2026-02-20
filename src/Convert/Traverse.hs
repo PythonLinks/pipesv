@@ -602,6 +602,8 @@ traverseNodesM exprMapper declMapper typeMapper lhsMapper stmtMapper =
         stmtMapper stmt >>= return . Initial
     moduleItemMapper (Final stmt) =
         stmtMapper stmt >>= return . Final
+    moduleItemMapper (Statement stmt) =
+        stmtMapper stmt >>= return . Statement
     moduleItemMapper (Assign opt lhs expr) = do
         opt' <- case opt of
             AssignOptionNone -> return $ AssignOptionNone

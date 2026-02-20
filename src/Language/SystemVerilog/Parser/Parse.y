@@ -1,3 +1,5 @@
+-- StageItems uses module items, not the stage items. 
+
 {- sv2v
  - Author: Zachary Snow <zach@zachjs.com>
  - Original Parser Author: Tom Hawkins <tomahawkins@gmail.com>
@@ -745,6 +747,17 @@ ModuleItem :: { [ModuleItem] }
   | LoopGenerateConstruct           { [Generate [$1]] }
   | "generate" GenItems endgenerate { [Generate $2] }
 
+StageItems :: { [ModuleItem] }
+  : {- empty -}                    { [] }
+  | ";" StageItems                { $2 }
+  | MITrace StageItem StageItems { addMITrace $1 ($2 ++ $3) }
+
+StageItem :: { [ModuleItem] }
+  : NonGenerateStageItem { $1 }
+  | ConditionalGenerateConstruct    { [Generate [$1]] }
+  | LoopGenerateConstruct           { [Generate [$1]] }
+  | "generate" GenItems endgenerate { [Generate $2] }
+
 NonGenerateModuleItem :: { [ModuleItem] }
   -- This item covers module instantiations and all declarations
   : ModuleDeclTokens(";")                {% mapM recordPartUsed $ parseDTsAsModuleItems $1 }
@@ -761,6 +774,22 @@ NonGenerateModuleItem :: { [ModuleItem] }
   | TaskOrFunction                       { [MIPackageItem $1] }
   | NInputGateKW  NInputGates  ";"       { map (\(a, b, c, d, e) -> NInputGate  $1 a b c d e) $2 }
   | NOutputGateKW NOutputGates ";"       { map (\(a, b, c, d, e) -> NOutputGate $1 a b c d e) $2 }
+  | AttributeInstance ModuleItem         { map (addMIAttr $1) $2 }
+  | AssertionItem                        { [AssertionItem $1] }
+
+
+NonGenerateStageItem :: { [ModuleItem] }
+  -- This item covers module instantiations and all declarations
+  :"defparam" LHSAsgns ";"              { map (uncurry Defparam) $2 }
+  | "assign" AssignOption LHSAsgns ";"   { map (uncurry $ Assign $2) $3 }
+  | AlwaysKW Stmt                        { [AlwaysC $1 $2] }
+  | StageAsgn                            { [$1] } 
+  | "initial" Stmt                       { [Initial $2] }
+  | "final"   Stmt                       { [Final   $2] }
+  | "genvar" Identifiers ";"             { map Genvar $2 }
+  | "modport" ModportItems ";"           { map (uncurry Modport) $2 }
+  | NonDeclPackageItem                   { map MIPackageItem $1 }
+  | TaskOrFunction                       { [MIPackageItem $1] }
   | AttributeInstance ModuleItem         { map (addMIAttr $1) $2 }
   | AssertionItem                        { [AssertionItem $1] }
 
@@ -1107,7 +1136,7 @@ StageKW :: { StageKW }
 
 
 StageDeclaration :: { [ModuleItem] }
-  : StageKW "(" Identifier ")" ModuleItems "endstage"
+  : StageKW "(" Identifier ")" StageItems "endstage"
                     { [StageC $1 (Stage $3 $5)] }
 
 AlwaysKW :: { AlwaysKW }
@@ -1217,6 +1246,14 @@ Stmts :: { [Stmt] }
 Stmt :: { Stmt }
   : StmtTrace StmtAsgn    { Block Seq "" [] [$1, $2] }
   | StmtTrace StmtNonAsgn { $2 }
+
+-- Bare assignments allowed at stage item level, without trace.
+StageAsgn :: { ModuleItem }
+  : LHS "="  OptDelayOrEvent Expr ";" { Statement $ Asgn AsgnOpEq         $3 $1 $4 }
+  | LHS "<=" OptDelayOrEvent Expr ";" { Statement $ Asgn AsgnOpNonBlocking $3 $1 $4 }
+  | LHS AsgnBinOp            Expr ";" { Statement $ Asgn $2  Nothing $1 $3 }
+  | LHS IncOrDecOperator          ";" { Statement $ Asgn (AsgnOp $2) Nothing $1 (RawNum 1) }
+  | IncOrDecOperator LHS          ";" { Statement $ Asgn (AsgnOp $1) Nothing $2 (RawNum 1) }
 
 StmtAsgn :: { Stmt }
   : LHS "="  OptDelayOrEvent Expr ";" { Asgn AsgnOpEq $3 $1 $4 }
@@ -1552,7 +1589,6 @@ Expr :: { Expr }
   | "(" Expr AsgnBinOpP Expr ")" {% makeExprAsgn $3                           $2 $4 }
   | Expr IncOrDecOperatorP            {% makeIncrExprAsgn True  $2 $1 }
   | IncOrDecOperatorP Expr %prec "++" {% makeIncrExprAsgn False $1 $2 }
-
 
 StageParser :: { Expr }
   -- value(+/- n)
