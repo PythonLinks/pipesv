@@ -401,6 +401,7 @@ tokens :-
     "?"                { tok Sym_question }
     "/"                { tok Sym_slash }
     "$"                { tok Sym_dollar }
+    "$("               { tok Sym_dollar_paren }    
     "'"                { tok Sym_s_quote }
 
     "~&"               { tok Sym_tildy_amp }

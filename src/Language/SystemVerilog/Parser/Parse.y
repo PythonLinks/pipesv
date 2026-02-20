@@ -346,6 +346,7 @@ time               { Token Lit_time        _ _ }
 "?"                { Token Sym_question _ _ }
 "/"                { Token Sym_slash _ _ }
 "$"                { Token Sym_dollar _ _ }
+"$("                { Token Sym_dollar_paren _ _ }
 "'"                { Token Sym_s_quote _ _ }
 "~&"               { Token Sym_tildy_amp _ _ }
 "~|"               { Token Sym_tildy_bar _ _ }
@@ -1488,6 +1489,7 @@ Expr :: { Expr }
   | DimFn  "(" TypeOrExpr "," Expr ")" { DimFn $1 $3 $5 }
   | Expr PartSelectP            { uncurry (Range $1) (snd $2) }
   | Expr "[" Expr "]"           { Bit   $1 $3 }
+  | StageParser                 { $1 } 
   | "{" Expr Concat "}"         { Repeat $2 $3 }
   | Concat                      { Concat $1 }
   | Expr "?" AttributeInstances Expr ":" Expr { MuxA $3 $1 $4 $6 }
@@ -1550,6 +1552,27 @@ Expr :: { Expr }
   | "(" Expr AsgnBinOpP Expr ")" {% makeExprAsgn $3                           $2 $4 }
   | Expr IncOrDecOperatorP            {% makeIncrExprAsgn True  $2 $1 }
   | IncOrDecOperatorP Expr %prec "++" {% makeIncrExprAsgn False $1 $2 }
+
+
+StageParser :: { Expr }
+  -- value(+/- n)
+  : Identifier "$(" PlusMinusParser Int ")"
+  { StageExpr $ StageOffset $1 (Offset $3 $4) }
+  
+  -- value(+/- n)[i]
+  | Identifier "$(" PlusMinusParser Int ")" "[" Expr "]"
+  { StageExpr $ StageSelect $1 (Offset $3 $4) $7 }
+  
+  -- value(+/- n)[hi:lo] or value(+/- n)[base +/- : width]
+  | Identifier "$(" PlusMinusParser Int ")" PartSelectP
+  { StageExpr $ StageRange $1 (Offset $3 $4) (snd $6) }
+
+Int :: { Integer }
+  : number {% readIntegralNumber (tokenPosition $1) (tokenString $1) }
+
+PlusMinusParser :: { PlusMinus }
+  : "+" { Positive }
+  | "-" { Negative }
 
 ExprOrNil :: { Expr }
   : Expr        { $1 }

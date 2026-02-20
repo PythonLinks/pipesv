@@ -448,6 +448,9 @@ traverseSinglyNestedExprsM exprMapper = em
             e1' <- exprMapper e1
             e2' <- exprMapper e2
             return $ Bit e1' e2'
+        em (StageExpr se) = do
+            se' <- traverseStageExpression exprMapper se
+            return $ StageExpr se'
         em (Repeat     e l) = do
             e' <- exprMapper e
             l' <- mapM exprMapper l
@@ -505,6 +508,19 @@ traverseSinglyNestedExprsM exprMapper = em
             e2' <- exprMapper e2
             return $ ExprAsgn e1' e2'
         em (Nil) = return Nil
+
+-- Helper to traverse StageExpression
+traverseStageExpression :: Monad m => MapperM m Expr -> StageExpression -> m StageExpression
+traverseStageExpression exprMapper (StageOffset ident offset) =
+    return $ StageOffset ident offset  -- Return StageOffset, not Offset
+traverseStageExpression exprMapper (StageSelect ident offset idx) = do
+    idx' <- exprMapper idx
+    return $ StageSelect ident offset idx'  -- Return StageSelect
+traverseStageExpression exprMapper (StageRange ident offset (mode, (l, r))) = do
+    l' <- exprMapper l
+    r' <- exprMapper r
+    return $ StageRange ident offset (mode, (l', r'))  -- Return StageRange
+
 
 traverseSinglyNestedExprs :: Mapper Expr -> Mapper Expr
 traverseSinglyNestedExprs = unmonad traverseSinglyNestedExprsM

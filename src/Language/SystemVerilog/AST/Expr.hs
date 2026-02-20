@@ -13,6 +13,9 @@ module Language.SystemVerilog.AST.Expr
     , PartSelectMode (..)
     , DimsFn (..)
     , DimFn (..)
+    , Offset (..)
+    , PlusMinus (..)
+    , StageExpression (..)
     , showAssignment
     , showRange
     , showRanges
@@ -56,6 +59,7 @@ data Expr
     | PSIdent Identifier Identifier
     | CSIdent Identifier [ParamBinding] Identifier
     | Range   Expr PartSelectMode Range
+    | StageExpr   StageExpression
     | Bit     Expr Expr
     | Repeat  Expr [Expr]
     | Concat  [Expr]
@@ -74,6 +78,8 @@ data Expr
     | ExprAsgn Expr Expr
     | Nil
     deriving Eq
+
+
 
 instance Show Expr where
     show (Nil          ) = ""
@@ -104,6 +110,7 @@ instance Show Expr where
                 where tStr = if null (show t) then "default" else show t
     show (MinTypMax a b c) = printf "(%s : %s : %s)" (show a) (show b) (show c)
     show (ExprAsgn l r) = printf "(%s = %s)" (show l) (show r)
+    show (StageExpr se) = showStageExpression se
     show e@UniOpA{} = showsPrec 0 e ""
     show e@BinOpA{} = showsPrec 0 e ""
     show e@Dot   {} = showsPrec 0 e ""
@@ -142,6 +149,19 @@ instance Show Expr where
         shows e .
         shows l
     showsPrec _ e = \s -> show e ++ s
+
+-- Helper to show StageExpression
+showSign :: PlusMinus -> String
+showSign Positive = "+"
+showSign Negative = "-"
+
+showStageExpression :: StageExpression -> String
+showStageExpression (StageOffset ident (Offset sign n)) =
+    printf "%s(%s%d)" ident (showSign sign) n
+showStageExpression (StageSelect ident (Offset sign n) idx) =
+    printf "%s(%s%d)[%s]" ident (showSign sign) n (show idx)
+showStageExpression (StageRange ident (Offset sign n) (mode, (l, r))) =
+    printf "%s(%s%d)[%s%s%s]" ident (showSign sign) n (show l) (show mode) (show r)
 
 data Args
     = Args [Expr] [(Identifier, Expr)]
@@ -224,3 +244,21 @@ showParams params = indentedParenList $ map showParam params
 showParam :: ParamBinding -> String
 showParam ("", arg) = showEither arg
 showParam (i, arg) = printf ".%s(%s)" i (showEither arg)
+
+
+-- Stage Offsets have a sign. 
+data PlusMinus
+   = Positive  
+  |  Negative  
+  deriving (Eq, Show)
+
+-- Stage offsets with sign and integer value
+data Offset = Offset PlusMinus Integer
+    deriving (Eq, Show)
+
+-- Stage value variants
+data StageExpression
+    = StageOffset Identifier Offset                         -- a(-1)
+    | StageSelect Identifier Offset Expr                     -- a(-1)[3]
+    | StageRange  Identifier Offset (PartSelectMode, Range)  -- a(-1)[3:0] or a(-1)[4+:2]
+    deriving (Eq, Show)

@@ -51,7 +51,7 @@ instance Show Description where
                 else " " ++ indentedParenList ports
             bodyStr = indent $ unlines' $ map show items
     show (Package lifetime name items) =
-        printf "package %s%s;\n%s\nHERE1endpackage"
+        printf "package %s%s;\n%s\nendpackage"
             (showPad lifetime) name bodyStr
         where
             bodyStr = indent $ unlines' $ map show items

@@ -71,18 +71,18 @@ instance Show Stmt where
 
     show (StmtAttr attr stmt) = printf "%s\n%s" (show attr) (show stmt)
     show (Block kw name decls stmts) =
-        printf "%s%s\n%s%s" (show kw) header body (blockEndToken kw)
+        printf "%s%s\n%s\t%s" (show kw) header body (blockEndToken kw)
         where
             header = if null name then "" else " : " ++ name
             body = unlines [showBlock decls stmts]
     show (Case u kw e cs) =
-        printf "%s%s (%s)%s\nHere4%s\nendcase" (showPad u) (show kw) (show e)
+        printf "%s%s (%s)%s\n%s\nendcase" (showPad u) (show kw) (show e)
             insideStr bodyStr
         where
             insideStr = if kw == CaseInside then " inside" else ""
             bodyStr = indent $ unlines' $ map showCase cs
     show (For inits cond assigns stmt) =
-        printf "for (%s; %s; %s)\nHEre5%s"
+        printf "for (%s; %s; %s)\n%s"
             (showInits inits)
             (show cond)
             (commas $ map showAssign assigns)
@@ -126,7 +126,7 @@ showAssign (l, op, e) = (showPad l) ++ (showPad op) ++ (show e)
 
 showBranch :: Stmt -> String
 showBranch (Block Seq "" [] stmts@[CommentStmt{}, _]) =
-    '\n':'H':'E' : (indent $ show stmts)
+    '\n': (indent $ show stmts)
 showBranch block@Block{} = ' ' : show block
 showBranch stmt = '\n' : (indent $ show stmt)
 

@@ -114,6 +114,13 @@ data Stage = Stage String [ModuleItem]
    deriving Eq
 
 instance Show Stage where
+    show (Stage identifier []) =
+        concat [
+                "(",
+                show identifier,
+                ")\n",
+                "endstage\n\n"
+            ]
     show (Stage identifier items) =
         let itemStrs = map show items
             body = unlines' itemStrs
@@ -122,7 +129,7 @@ instance Show Stage where
                 show identifier,
                 ")\n",
                 if null body then "" else (indent body ++ "\n"),
-                "endstage"
+                "\tendstage"
             ]
 
 

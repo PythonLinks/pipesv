@@ -316,6 +316,7 @@ data TokenName
     | Sym_amp
     | Sym_bar
     | Sym_aster
+    | Sym_dollar_paren
     | Sym_dot
     | Sym_comma
     | Sym_colon
