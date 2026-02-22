@@ -18,6 +18,7 @@ import Job (readJob, Job(..), Write(..))
 import Language.SystemVerilog.AST
 import Language.SystemVerilog.Parser (parseFiles, Config(..))
 import Split (splitDescriptions)
+import PipeSV.StageNames (collectStages)
 
 isComment :: Description -> Bool
 isComment (PackageItem (Decl CommentDecl{})) = True
@@ -103,6 +104,10 @@ main = do
             exitFailure
         Right inputs -> do
             let (inPaths, asts) = unzip inputs
+            -- print stage names
+            let (stageNames, stageIndex) = collectStages (concat asts)
+            hPutStrLn stderr $ "Stage names: " ++ show stageNames
+            hPutStrLn stderr $ "Stage index: " ++ show stageIndex
             -- convert the files if requested
             let converter = convert (top job) (dumpPrefix job) (exclude job)
             asts' <-
