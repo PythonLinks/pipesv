@@ -19,7 +19,7 @@ module Language.SystemVerilog.AST.ModuleItem
     , AssertionItem (..)
     ) where
 
-import Data.List (intercalate)
+import Data.List (intercalate,partition)
 import Text.Printf (printf)
 
 import Language.SystemVerilog.AST.ShowHelp
@@ -120,26 +120,41 @@ instance Show Stage where
         concat [
                 "(",
                 show identifier,
-                ")\n",
-                "endstage\n\n"
+                ")\n"
             ]
     show (Stage identifier items) =
-        let itemStrs = map show items
-            body = unlines' itemStrs
+        let (stageAlways, otherItems) = partition isStageAlways items
+            otherStrs  = map show otherItems
+            alwaysStrs   = map show stageAlways
+            alwaysBlock = if null stageAlways
+                            then ""
+                            else indent  ( "always @(posedge clock) begin\n" ++
+                                    indent (unlines' (
+                                    alwaysStrs
+                                    ++ ["end\n"]
+                                    )))
+            otherBody  = if null otherItems then ""
+                           else indent (unlines'(
+                                     map (\s -> "\t\t" ++ s) otherStrs))
+                                    ++ "\n"
+            body       = otherBody ++ alwaysBlock
         in concat [
                 "(",
                 show identifier,
                 ")\n",
-                if null body then "" else (indent body ++ "\n"),
-                "\tendstage"
+                body
             ]
+
+isStageAlways :: ModuleItem -> Bool
+isStageAlways (Statement _) = True
+isStageAlways _             = False
 
 
 instance Show StageKW where
-    show StageKW = "stage"
+    show StageKW = "//stage"
 
 instance Show EndStageKW where
-    show EndStageKW = "endstage"
+    show EndStageKW = ""
 
 
 data AlwaysKW

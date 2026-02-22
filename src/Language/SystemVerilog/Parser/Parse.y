@@ -792,6 +792,8 @@ NonGenerateStageItem :: { [ModuleItem] }
   | TaskOrFunction                       { [MIPackageItem $1] }
   | AttributeInstance ModuleItem         { map (addMIAttr $1) $2 }
   | AssertionItem                        { [AssertionItem $1] }
+  | NetTypeP Strength DeclTokens(";")    { map (MIPackageItem . Decl) $ parseDTsAsDecl (uncurry DTNet $1 $2 : $3) }
+  | PartialTypeP      DeclTokens(";")    { map (MIPackageItem . Decl) $ parseDTsAsDecl (uncurry DTType $1   : $2) }
 
 AssignOption :: { AssignOption }
   : {- empty -}   { AssignOptionNone }
