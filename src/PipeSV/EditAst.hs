@@ -72,7 +72,7 @@ instance EditAST Description where
 -- Assign (checks LHS, rewrites RHS), and Statement (recurses into stmt).
 -- All other ModuleItem variants pass through unchanged.
 instance EditAST ModuleItem where
-    editAST context (StageC kw stage@(Stage name _)) = do
+    editAST context (StageC kw stage@(Stage _ _)) = do
         let context' = calculateContext context stage
         stage' <- editAST context' stage
         return (StageC kw stage')
@@ -183,45 +183,54 @@ editStageExpr context currentStageIndex (StageRange ident offset (mode, r)) = do
     return (Range (Ident newName) mode r)
 
 -- | Calculates the new name of a reg or wire on the right-hand side.
--- Looks up the target stage from the offset and returns "ident_targetStageName",
--- or the original ident if the target is -1 (port input).
-editName :: StageContext -> Int -> String -> Offset -> IO String
-editName context currentStageIndex ident offset
+-- Dispatches to editNameByIndex after resolving the StageIdentifier to a target index.
+editName :: StageContext -> Int -> String -> StageIdentifier -> IO String
+editName context currentStageIndex ident (StageByOffset offset) =
+    editNameByIndex context currentStageIndex ident
+        (currentStageIndex + offsetToInt offset)
+editName context _ ident (StageByName name) =
+    case Map.lookup name (nameToIndex context) of
+        Nothing ->
+            do hPutStrLn stderr $ "Error in EditAst.editName: unknown stage name '"
+                    ++ name ++ "' in expression " ++ ident ++ "#{" ++ name ++ "}"
+               exitFailure
+        Just targetIndex -> editNameByIndex context targetIndex ident targetIndex
+
+-- | Handles bounds checking and renaming once the target stage index is known.
+-- Returns "ident_stageName" for valid stages, or the original ident for index -1 (port input).
+editNameByIndex :: StageContext -> Int -> String -> Int -> IO String
+editNameByIndex context currentStageIndex ident targetIndex
     -- Variable is declared in the current stage
     | Set.member ident (contextLocalDecls context) =
-        if offsetInt /= 0
+        if targetIndex /= currentStageIndex
             then do
-
-                -- Non-zero offset on a local variable: error, it doesn't exist in other stages
-                hPutStrLn stderr $ "Error: " ++ ident ++ " is declared in the current stage and cannot be referenced with a non-zero offset"
+                -- Reference to a local variable from another stage: error
+                hPutStrLn stderr $ "Error in EditAst.editNameByIndex: "
+                    ++ ident ++ " is declared in the current stage and cannot be referenced from another stage"
                 exitFailure
             else do
-
-                -- Zero offset on a local: redundant but legal, warn and continue
-                hPutStrLn stderr $ "Warning: " ++ ident ++ "(0) is redundant; the variable is declared in the current stage"
+                -- Same-stage reference to a local: redundant but legal, warn and continue
+                hPutStrLn stderr $ "Warning: " ++ ident ++ " with same-stage reference is redundant"
                 return ident
 
     -- Target stage is before the first stage: error
-    | tgt < -1 = do
-        hPutStrLn stderr $ "Error: stage offset for " ++ ident ++ " is too far back"
+    | targetIndex < -1 = do
+        hPutStrLn stderr $ "Error in EditAst.editNameByIndex: stage reference for " ++ ident ++ " is too far back"
         exitFailure
 
     -- Target stage is after the last stage: error
-    | tgt > lastIndex = do
-        hPutStrLn stderr $ "Error: stage offset for " ++ ident ++ " is too far forward"
+    | targetIndex > lastIndex = do
+        hPutStrLn stderr $ "Error in EditAst.editNameByIndex: stage reference for " ++ ident ++ " is too far forward"
         exitFailure
 
     -- Target is -1: this is a port input, leave the name unchanged
-    | tgt == -1 =
+    | targetIndex == -1 =
         return ident
 
     -- Target is a valid stage: rename to ident_stageName
     | otherwise =
-        return $ ident ++ "_" ++ (contextStageNames context !! tgt)
-    where
-        offsetInt = offsetToInt offset
-        tgt       = currentStageIndex + offsetInt
-        lastIndex = length (contextStageNames context) - 1
+        return $ ident ++ "_" ++ (contextStageNames context !! targetIndex)
+    where lastIndex = length (contextStageNames context) - 1
 
 -- | Applies the implicit default offset of -1 to a plain identifier inside
 -- a stage. Returns the original name unchanged if the target is -1 (port input).

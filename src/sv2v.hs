@@ -104,10 +104,7 @@ main = do
             exitFailure
         Right inputs -> do
             let (inPaths, asts) = unzip inputs
-            -- print stage names
-            let (stageNames, stageIndex) = collectStages (concat asts)
-            hPutStrLn stderr $ "Stage names: " ++ show stageNames
-            hPutStrLn stderr $ "Stage index: " ++ show stageIndex
+
             -- convert the files if requested
             let converter = convert (top job) (dumpPrefix job) (exclude job)
             asts' <-

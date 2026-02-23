@@ -15,6 +15,7 @@ module Language.SystemVerilog.AST.Expr
     , DimFn (..)
     , Offset (..)
     , PlusMinus (..)
+    , StageIdentifier (..)
     , StageExpression (..)
     , showAssignment
     , showRange
@@ -155,13 +156,17 @@ showSign :: PlusMinus -> String
 showSign Positive = "+"
 showSign Negative = "-"
 
+showStageIdentifier :: StageIdentifier -> String
+showStageIdentifier (StageByOffset (Offset sign n)) = printf "%s%d" (showSign sign) n
+showStageIdentifier (StageByName   name)            = name
+
 showStageExpression :: StageExpression -> String
-showStageExpression (StageOffset ident (Offset sign n)) =
-    printf "%s#{%s%d}" ident (showSign sign) n
-showStageExpression (StageSelect ident (Offset sign n) idx) =
-    printf "%s#{%s%d}[%s]" ident (showSign sign) n (show idx)
-showStageExpression (StageRange ident (Offset sign n) (mode, (l, r))) =
-    printf "%s#{%s%d}[%s%s%s]" ident (showSign sign) n (show l) (show mode) (show r)
+showStageExpression (StageOffset ident stageIdentifier) =
+    printf "%s#{%s}" ident (showStageIdentifier stageIdentifier)
+showStageExpression (StageSelect ident stageIdentifier index) =
+    printf "%s#{%s}[%s]" ident (showStageIdentifier stageIdentifier) (show index)
+showStageExpression (StageRange ident stageIdentifier (mode, (l, r))) =
+    printf "%s#{%s}[%s%s%s]" ident (showStageIdentifier stageIdentifier) (show l) (show mode) (show r)
 
 data Args
     = Args [Expr] [(Identifier, Expr)]
@@ -256,9 +261,15 @@ data PlusMinus
 data Offset = Offset PlusMinus Integer
     deriving (Eq, Show)
 
+-- | A stage reference, either by numeric offset or by stage name.
+data StageIdentifier
+    = StageByOffset Offset
+    | StageByName   String
+    deriving (Eq, Show)
+
 -- Stage value variants
 data StageExpression
-    = StageOffset Identifier Offset                         -- a#{-1}
-    | StageSelect Identifier Offset Expr                    -- a#{-1}[3]
-    | StageRange  Identifier Offset (PartSelectMode, Range) -- a#{-1}[3:0] or a#{-1}[4+:2]
+    = StageOffset Identifier StageIdentifier                         -- a#{-1} or a#{first}
+    | StageSelect Identifier StageIdentifier Expr                    -- a#{-1}[3] or a#{first}[3]
+    | StageRange  Identifier StageIdentifier (PartSelectMode, Range) -- a#{-1}[3:0] or a#{first}[3:0]
     deriving (Eq, Show)

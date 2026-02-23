@@ -1596,15 +1596,27 @@ Expr :: { Expr }
 StageParser :: { Expr }
   -- value#{+/- n}
   : Identifier "#{" PlusMinusParser Int "}" %prec StageOffsetPrec
-  { StageExpr $ StageOffset $1 (Offset $3 $4) }
+  { StageExpr $ StageOffset $1 (StageByOffset (Offset $3 $4)) }
 
   -- value#{+/- n}[i]
   | Identifier "#{" PlusMinusParser Int "}" "[" Expr "]"
-  { StageExpr $ StageSelect $1 (Offset $3 $4) $7 }
+  { StageExpr $ StageSelect $1 (StageByOffset (Offset $3 $4)) $7 }
 
   -- value#{+/- n}[hi:lo] or value#{+/- n}[base +/- : width]
   | Identifier "#{" PlusMinusParser Int "}" PartSelectP
-  { StageExpr $ StageRange $1 (Offset $3 $4) (snd $6) }
+  { StageExpr $ StageRange $1 (StageByOffset (Offset $3 $4)) (snd $6) }
+
+  -- value#{stageName}
+  | Identifier "#{" Identifier "}" %prec StageOffsetPrec
+  { StageExpr $ StageOffset $1 (StageByName $3) }
+
+  -- value#{stageName}[i]
+  | Identifier "#{" Identifier "}" "[" Expr "]"
+  { StageExpr $ StageSelect $1 (StageByName $3) $6 }
+
+  -- value#{stageName}[hi:lo] or value#{stageName}[base +/- : width]
+  | Identifier "#{" Identifier "}" PartSelectP
+  { StageExpr $ StageRange $1 (StageByName $3) (snd $5) }
 
 Int :: { Integer }
   : number {% readIntegralNumber (tokenPosition $1) (tokenString $1) }
