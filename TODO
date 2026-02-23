@@ -1,0 +1,14 @@
+Also, there are 3 basic design patterns that I'm aware of for building pipelines, there may be others. Using Spinal naming here. 
+
+Registers: data only, your case
+Flow: valid+data
+Stream: valid+ready+data
+
+
+I think I need pipeline and end pipelinekeywords
+pipeline(Registers)
+pipeline(Flow)
+pipeline(Stream) 
+Christopher Lozinski
+
+Suggest you add verilator with the  lint option to the output of your tool.

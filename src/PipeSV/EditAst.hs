@@ -1,5 +1,6 @@
 module PipeSV.EditAst where
 
+import Data.List (partition)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import System.IO (hPutStrLn, stderr)
@@ -59,23 +60,19 @@ instance CalculateContext Stage where
 class EditAST a where
     editAST :: StageContext -> a -> IO a
 
--- | Enriches the context with stage names then recurses into module items.
+-- | Enriches the context with stage names then expands module items.
 -- All other Description variants pass through unchanged.
 instance EditAST Description where
     editAST context d@(Part attrs b kw lt name ports items) = do
         let context' = calculateContext context d
-        items' <- mapM (editAST context') items
+        items' <- fmap concat $ mapM (expandModuleItem context') items
         return (Part attrs b kw lt name ports items')
     editAST _ d = return d
 
--- | Handles StageC (enriches context, recurses into stage body),
--- Assign (checks LHS, rewrites RHS), and Statement (recurses into stmt).
+-- | Handles Assign (checks LHS, rewrites RHS) and Statement (recurses into stmt).
 -- All other ModuleItem variants pass through unchanged.
+-- StageC is handled by expandModuleItem, which expands it into multiple items.
 instance EditAST ModuleItem where
-    editAST context (StageC kw stage@(Stage _ _)) = do
-        let context' = calculateContext context stage
-        stage' <- editAST context' stage
-        return (StageC kw stage')
     editAST context (Assign opt lhs expr) = do
         checkLHS lhs
         expr' <- editAST context expr
@@ -84,12 +81,6 @@ instance EditAST ModuleItem where
         stmt' <- editAST context stmt
         return (Statement stmt')
     editAST _ mi = return mi
-
--- | Recurses into all items in the stage body.
-instance EditAST Stage where
-    editAST context (Stage name items) = do
-        items' <- mapM (editAST context) items
-        return (Stage name items')
 
 -- | Rewrites the RHS of assignments. Checks LHS for illegal stage expressions.
 -- All other Stmt variants pass through unchanged.
@@ -159,6 +150,42 @@ instance EditAST Args where
 -- -------------------------------------------------------
 -- Helpers
 -- -------------------------------------------------------
+
+-- | Expands a StageC into its constituent module items; passes all other
+-- items through unchanged.
+expandModuleItem :: StageContext -> ModuleItem -> IO [ModuleItem]
+expandModuleItem context (StageC _ stage) = expandStage context stage
+expandModuleItem context item = do
+    item' <- editAST context item
+    return [item']
+
+-- | Expands a Stage into declarations followed by an always block.
+-- Rewrites stage expressions before partitioning, so that all StageExpr
+-- nodes are resolved before the items move into standard Verilog AST nodes.
+expandStage :: StageContext -> Stage -> IO [ModuleItem]
+expandStage context stage = do
+
+    -- a. Enrich context with this stage's index and local declarations
+    let context' = calculateContext context stage
+    let Stage _ items = stage
+
+    -- b. Rewrite stage expressions in all items first
+    rewrittenItems <- mapM (editAST context') items
+
+    -- c. Partition into statements and declarations
+    let (statementItems, declarations) = partition isStatement rewrittenItems
+    let stmts = [stmt | Statement stmt <- statementItems]
+
+    -- d. Wrap statements in always @(posedge clock) begin...end
+    let clockEvent  = Event (EventExpr (EventExprEdge Posedge (Ident "clock")))
+    let alwaysItems = if null stmts
+                        then []
+                        else [AlwaysC Always (Timing clockEvent (Block Seq "" [] stmts))]
+    return (declarations ++ alwaysItems)
+
+isStatement :: ModuleItem -> Bool
+isStatement (Statement _) = True
+isStatement _             = False
 
 -- | Edits a stage expression to a plain Verilog expression by renaming
 -- the identifier to its target-stage name via editName.

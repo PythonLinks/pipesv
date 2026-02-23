@@ -511,8 +511,8 @@ traverseSinglyNestedExprsM exprMapper = em
 
 -- Helper to traverse StageExpression
 traverseStageExpression :: Monad m => MapperM m Expr -> StageExpression -> m StageExpression
-traverseStageExpression exprMapper (StageOffset ident offset) =
-    return $ StageOffset ident offset  -- Return StageOffset, not Offset
+traverseStageExpression _ (StageOffset ident offset) =
+    return $ StageOffset ident offset
 traverseStageExpression exprMapper (StageSelect ident offset idx) = do
     idx' <- exprMapper idx
     return $ StageSelect ident offset idx'  -- Return StageSelect

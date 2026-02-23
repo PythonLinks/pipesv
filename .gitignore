@@ -6,3 +6,4 @@ bin/
 *.tix
 *~
 .DS_Store
+output.sv
