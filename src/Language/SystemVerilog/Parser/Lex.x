@@ -384,6 +384,7 @@ tokens :-
     "!"                { tok Sym_bang }
     "@"                { tok Sym_at }
     "#"                { tok Sym_pound }
+    "#{"               { tok Sym_pound_brace }
     "%"                { tok Sym_percent }
     "^"                { tok Sym_hat }
     "&"                { tok Sym_amp }
@@ -401,7 +402,6 @@ tokens :-
     "?"                { tok Sym_question }
     "/"                { tok Sym_slash }
     "$"                { tok Sym_dollar }
-    "$("               { tok Sym_dollar_paren }    
     "'"                { tok Sym_s_quote }
 
     "~&"               { tok Sym_tildy_amp }

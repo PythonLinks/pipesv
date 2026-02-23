@@ -311,12 +311,12 @@ data TokenName
     | Sym_bang
     | Sym_at
     | Sym_pound
+    | Sym_pound_brace
     | Sym_percent
     | Sym_hat
     | Sym_amp
     | Sym_bar
     | Sym_aster
-    | Sym_dollar_paren
     | Sym_dot
     | Sym_comma
     | Sym_colon

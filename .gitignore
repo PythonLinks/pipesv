@@ -5,3 +5,4 @@ bin/
 .hpc/
 *.tix
 *~
+.DS_Store

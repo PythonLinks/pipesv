@@ -116,7 +116,8 @@ executable sv2v
     Convert.UnpackedArray
     Convert.Unsigned
     Convert.Wildcard
-    PipeSV.StageNames    
+    PipeSV.StageNames
+    PipeSV.EditAst
     -- sv2v CLI modules
     Bugpoint
     Job

@@ -11,7 +11,6 @@ import System.FilePath (combine, splitExtension)
 import Control.Monad (when, zipWithM_)
 import Control.Monad.Except (runExceptT)
 import Data.List (nub)
-
 import Bugpoint (runBugpoint)
 import Convert (convert)
 import Job (readJob, Job(..), Write(..))
@@ -19,6 +18,7 @@ import Language.SystemVerilog.AST
 import Language.SystemVerilog.Parser (parseFiles, Config(..))
 import Split (splitDescriptions)
 import PipeSV.StageNames (collectStages)
+import PipeSV.EditAst (rewriteAST)
 
 isComment :: Description -> Bool
 isComment (PackageItem (Decl CommentDecl{})) = True
@@ -112,7 +112,7 @@ main = do
             let converter = convert (top job) (dumpPrefix job) (exclude job)
             asts' <-
                 if passThrough job then
-                    return asts
+                    mapM rewriteAST asts
                 else if bugpoint job /= [] then
                     runBugpoint (bugpoint job) converter asts
                 else

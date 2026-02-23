@@ -331,6 +331,7 @@ time               { Token Lit_time        _ _ }
 "!"                { Token Sym_bang _ _ }
 "@"                { Token Sym_at _ _ }
 "#"                { Token Sym_pound _ _ }
+"#{"               { Token Sym_pound_brace _ _ }
 "%"                { Token Sym_percent _ _ }
 "^"                { Token Sym_hat _ _ }
 "&"                { Token Sym_amp _ _ }
@@ -348,7 +349,6 @@ time               { Token Lit_time        _ _ }
 "?"                { Token Sym_question _ _ }
 "/"                { Token Sym_slash _ _ }
 "$"                { Token Sym_dollar _ _ }
-"$("                { Token Sym_dollar_paren _ _ }
 "'"                { Token Sym_s_quote _ _ }
 "~&"               { Token Sym_tildy_amp _ _ }
 "~|"               { Token Sym_tildy_bar _ _ }
@@ -440,6 +440,7 @@ time               { Token Lit_time        _ _ }
 %left  "**"
 %right REDUCE_OP "!" "~" "++" "--"
 %left "'"
+%nonassoc StageOffsetPrec
 %left  "(" ")" "[" "]" "." "::" "#"
 
 %%
@@ -1593,16 +1594,16 @@ Expr :: { Expr }
   | IncOrDecOperatorP Expr %prec "++" {% makeIncrExprAsgn False $1 $2 }
 
 StageParser :: { Expr }
-  -- value(+/- n)
-  : Identifier "$(" PlusMinusParser Int ")"
+  -- value#{+/- n}
+  : Identifier "#{" PlusMinusParser Int "}" %prec StageOffsetPrec
   { StageExpr $ StageOffset $1 (Offset $3 $4) }
-  
-  -- value(+/- n)[i]
-  | Identifier "$(" PlusMinusParser Int ")" "[" Expr "]"
+
+  -- value#{+/- n}[i]
+  | Identifier "#{" PlusMinusParser Int "}" "[" Expr "]"
   { StageExpr $ StageSelect $1 (Offset $3 $4) $7 }
-  
-  -- value(+/- n)[hi:lo] or value(+/- n)[base +/- : width]
-  | Identifier "$(" PlusMinusParser Int ")" PartSelectP
+
+  -- value#{+/- n}[hi:lo] or value#{+/- n}[base +/- : width]
+  | Identifier "#{" PlusMinusParser Int "}" PartSelectP
   { StageExpr $ StageRange $1 (Offset $3 $4) (snd $6) }
 
 Int :: { Integer }

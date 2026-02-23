@@ -157,11 +157,11 @@ showSign Negative = "-"
 
 showStageExpression :: StageExpression -> String
 showStageExpression (StageOffset ident (Offset sign n)) =
-    printf "%s(%s%d)" ident (showSign sign) n
+    printf "%s#{%s%d}" ident (showSign sign) n
 showStageExpression (StageSelect ident (Offset sign n) idx) =
-    printf "%s(%s%d)[%s]" ident (showSign sign) n (show idx)
+    printf "%s#{%s%d}[%s]" ident (showSign sign) n (show idx)
 showStageExpression (StageRange ident (Offset sign n) (mode, (l, r))) =
-    printf "%s(%s%d)[%s%s%s]" ident (showSign sign) n (show l) (show mode) (show r)
+    printf "%s#{%s%d}[%s%s%s]" ident (showSign sign) n (show l) (show mode) (show r)
 
 data Args
     = Args [Expr] [(Identifier, Expr)]
@@ -258,7 +258,7 @@ data Offset = Offset PlusMinus Integer
 
 -- Stage value variants
 data StageExpression
-    = StageOffset Identifier Offset                         -- a(-1)
-    | StageSelect Identifier Offset Expr                     -- a(-1)[3]
-    | StageRange  Identifier Offset (PartSelectMode, Range)  -- a(-1)[3:0] or a(-1)[4+:2]
+    = StageOffset Identifier Offset                         -- a#{-1}
+    | StageSelect Identifier Offset Expr                    -- a#{-1}[3]
+    | StageRange  Identifier Offset (PartSelectMode, Range) -- a#{-1}[3:0] or a#{-1}[4+:2]
     deriving (Eq, Show)
