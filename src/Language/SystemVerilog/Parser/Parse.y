@@ -120,6 +120,7 @@ import Language.SystemVerilog.Parser.Tokens
 "endspecify"       { Token KW_endspecify   _ _ }
 "endsequence"      { Token KW_endsequence  _ _ }
 "endstage"         { Token KW_endstage     _ _ }
+"endpipeline"      { Token KW_endpipeline  _ _ }
 "endtable"         { Token KW_endtable     _ _ }
 "endtask"          { Token KW_endtask      _ _ }
 "enum"             { Token KW_enum         _ _ }
@@ -246,6 +247,7 @@ import Language.SystemVerilog.Parser.Tokens
 "specify"          { Token KW_specify      _ _ }
 "specparam"        { Token KW_specparam    _ _ }
 "static"           { Token KW_static       _ _ }
+"pipeline"         { Token KW_pipeline     _ _ }
 "stage"            { Token KW_stage        _ _ }
 "string"           { Token KW_string       _ _ }
 "strong"           { Token KW_strong       _ _ }
@@ -766,7 +768,7 @@ NonGenerateModuleItem :: { [ModuleItem] }
   | "defparam" LHSAsgns ";"              { map (uncurry Defparam) $2 }
   | "assign" AssignOption LHSAsgns ";"   { map (uncurry $ Assign $2) $3 }
   | AlwaysKW Stmt                        { [AlwaysC $1 $2] }
-  | StageDeclaration                     { $1 }
+  | PipelineDeclaration                  { $1 }
   | "initial" Stmt                       { [Initial $2] }
   | "final"   Stmt                       { [Final   $2] }
   | "genvar" Identifiers ";"             { map Genvar $2 }
@@ -1139,8 +1141,20 @@ StageKW :: { StageKW }
 
 
 StageDeclaration :: { [ModuleItem] }
-  : StageKW "(" Identifier ")" StageItems "endstage"
+  : StageKW "(" Identifier ")" StageItems
                     { [StageC $1 (Stage $3 $5)] }
+  | StageKW "(" Identifier ")" StageItems "endstage"
+                    { [StageC $1 (Stage $3 $5), EndStageC] }
+
+PipelineKW :: { PipelineKW }
+  : "pipeline" { PipelineKW }
+
+PipelineStages :: { [ModuleItem] }
+  : {- empty -}                       { [] }
+  | PipelineStages StageDeclaration   { $1 ++ $2 }
+
+PipelineDeclaration :: { [ModuleItem] }
+  : PipelineKW PipelineStages "endpipeline"  { [PipelineC $1] ++ $2 ++ [EndPipelineC] }
 
 AlwaysKW :: { AlwaysKW }
   : "always"       { Always      }

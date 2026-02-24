@@ -110,7 +110,9 @@ data TokenName
     | KW_endproperty
     | KW_endspecify
     | KW_endsequence
-    | KW_endstage    
+    | KW_endstage
+    | KW_endpipeline
+    | KW_pipeline
     | KW_endtable
     | KW_endtask
     | KW_enum

@@ -596,6 +596,9 @@ traverseNodesM exprMapper declMapper typeMapper lhsMapper stmtMapper =
         let (Stage ident items) = stage
         items' <- mapM (traverseNestedModuleItemsM moduleItemMapper) items
         return $ StageC kw (Stage ident items')
+    moduleItemMapper (PipelineC keyword) = return $ PipelineC keyword
+    moduleItemMapper EndPipelineC        = return EndPipelineC
+    moduleItemMapper EndStageC           = return EndStageC
     moduleItemMapper (AlwaysC kw stmt) =
         stmtMapper stmt >>= return . AlwaysC kw
     moduleItemMapper (Initial stmt) =

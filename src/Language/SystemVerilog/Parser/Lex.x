@@ -179,7 +179,9 @@ tokens :-
     "endprogram"       { tok KW_endprogram   }
     "endproperty"      { tok KW_endproperty  }
     "endspecify"       { tok KW_endspecify   }
-    "endstage"         { tok KW_endstage     }   
+    "endstage"         { tok KW_endstage     }
+    "endpipeline"      { tok KW_endpipeline  }
+    "pipeline"         { tok KW_pipeline     }
     "endsequence"      { tok KW_endsequence  }
     "endtable"         { tok KW_endtable     }
     "endtask"          { tok KW_endtask      }

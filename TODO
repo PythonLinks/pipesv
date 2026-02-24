@@ -9,6 +9,5 @@ I think I need pipeline and end pipelinekeywords
 pipeline(Registers)
 pipeline(Flow)
 pipeline(Stream) 
-Christopher Lozinski
 
 Suggest you add verilator with the  lint option to the output of your tool.

@@ -154,7 +154,10 @@ instance EditAST Args where
 -- | Expands a StageC into its constituent module items; passes all other
 -- items through unchanged.
 expandModuleItem :: StageContext -> ModuleItem -> IO [ModuleItem]
-expandModuleItem context (StageC _ stage) = expandStage context stage
+expandModuleItem context (StageC kw stage) = do
+    let Stage name _ = stage
+    expanded <- expandStage context stage
+    return [StageC kw (Stage name expanded)]
 expandModuleItem context item = do
     item' <- editAST context item
     return [item']

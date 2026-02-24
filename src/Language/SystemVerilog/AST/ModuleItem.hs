@@ -11,7 +11,7 @@ module Language.SystemVerilog.AST.ModuleItem
     , ModportDecl
     , Stage         (..)
     , StageKW       (..)
-    , EndStageKW    (..)
+    , PipelineKW    (..)
     , AlwaysKW      (..)
     , NInputGateKW  (..)
     , NOutputGateKW (..)
@@ -30,13 +30,16 @@ import Language.SystemVerilog.AST.Description (PackageItem)
 import Language.SystemVerilog.AST.Expr (Expr(Nil), pattern Ident, Range, showRanges, ParamBinding, showParams, Args(Args))
 import Language.SystemVerilog.AST.GenItem (GenItem)
 import Language.SystemVerilog.AST.LHS (LHS)
-import Language.SystemVerilog.AST.Stmt (Stmt, Assertion, Severity, Timing(Delay), PropertySpec, SeqExpr)
+import Language.SystemVerilog.AST.Stmt (Stmt, Assertion, Severity, Timing(Delay), PropertySpec, SeqExpr, showAlwaysBody)
 import Language.SystemVerilog.AST.Type (Identifier, Strength0, Strength1)
 
 data ModuleItem
-    = MIAttr     Attr ModuleItem
-    | StageC     StageKW Stage
-    | Statement  Stmt
+    = MIAttr        Attr ModuleItem
+    | StageC        StageKW Stage
+    | PipelineC     PipelineKW
+    | EndPipelineC
+    | EndStageC
+    | Statement     Stmt
     | AlwaysC    AlwaysKW Stmt
     | Assign     AssignOption LHS Expr
     | Defparam   LHS Expr
@@ -57,7 +60,10 @@ instance Show ModuleItem where
     show (MIPackageItem i) = show i
     show (MIAttr attr mi ) = printf "%s %s" (show attr) (show mi)
     show (StageC      k b) = printf "%s %s" (show k) (show b)
-    show (AlwaysC     k b) = printf "%s %s" (show k)  (show b)
+    show (PipelineC   k  ) = show k
+    show EndPipelineC      = "// endpipeline"
+    show EndStageC         = "// endstage"
+    show (AlwaysC     k b) = printf "%s %s" (show k) (showAlwaysBody b)
     show (Assign    o a b) = printf "assign %s%s = %s;" (showPad o) (show a) (show b)
     show (Defparam    a b) = printf "defparam %s = %s;" (show a) (show b)
     show (Genvar      x  ) = printf "genvar %s;" x
@@ -109,7 +115,7 @@ type ModportDecl = (Direction, Identifier, Expr)
 data StageKW = StageKW
      deriving Eq
 
-data EndStageKW = EndStageKW
+data PipelineKW = PipelineKW
      deriving Eq
 
 data Stage = Stage String [ModuleItem]
@@ -117,13 +123,13 @@ data Stage = Stage String [ModuleItem]
 
 instance Show Stage where
     show (Stage name items) =
-        printf "(%s)\n%s\n// endstage" name (indent $ unlines' $ map show items)
+        printf "(%s)\n%s" name (indent $ unlines' $ map show items)
 
 instance Show StageKW where
     show StageKW = "// stage"
 
-instance Show EndStageKW where
-    show EndStageKW = ""
+instance Show PipelineKW where
+    show PipelineKW = "// pipeline"
 
 
 data AlwaysKW

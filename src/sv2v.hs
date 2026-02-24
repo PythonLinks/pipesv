@@ -17,7 +17,7 @@ import Job (readJob, Job(..), Write(..))
 import Language.SystemVerilog.AST
 import Language.SystemVerilog.Parser (parseFiles, Config(..))
 import Split (splitDescriptions)
-import PipeSV.StageNames (collectStages)
+import PipeSV.StageNames ()
 import PipeSV.EditAst (rewriteAST)
 
 isComment :: Description -> Bool

@@ -24,6 +24,7 @@ module Language.SystemVerilog.AST.Stmt
     , ViolationCheck (..)
     , BlockKW (..)
     , Severity      (..)
+    , showAlwaysBody
     ) where
 
 import Text.Printf (printf)
@@ -160,6 +161,12 @@ showElseBranch stmt = "\nelse" ++ showBranch stmt
 showShortBranch :: Stmt -> String
 showShortBranch stmt@Asgn{} = ' ' : show stmt
 showShortBranch stmt = showBranch stmt
+
+showAlwaysBody :: Stmt -> String
+showAlwaysBody (Timing t (Block Seq "" [] [stmt])) =
+    printf "%s\n\t%s" (show t) (show stmt)
+showAlwaysBody (Block Seq "" [] [stmt]) = show stmt
+showAlwaysBody stmt = show stmt
 
 showCase :: Case -> String
 showCase (a, b) = printf "%s:%s" exprStr (showShortBranch b)
