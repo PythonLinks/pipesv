@@ -783,10 +783,11 @@ NonGenerateModuleItem :: { [ModuleItem] }
 
 NonGenerateStageItem :: { [ModuleItem] }
   -- This item covers module instantiations and all declarations
-  :"defparam" LHSAsgns ";"              { map (uncurry Defparam) $2 }
+  : "var" DeclTokens(";")                { map (MIPackageItem . Decl) $ parseDTsAsDecl (DTVar (tokenPosition $1) : $2) }
+  | "defparam" LHSAsgns ";"              { map (uncurry Defparam) $2 }
   | "assign" AssignOption LHSAsgns ";"   { map (uncurry $ Assign $2) $3 }
   | AlwaysKW Stmt                        { [AlwaysC $1 $2] }
-  | StageAsgn                            { [$1] } 
+  | StageAsgn                            { [$1] }
   | "initial" Stmt                       { [Initial $2] }
   | "final"   Stmt                       { [Final   $2] }
   | "genvar" Identifiers ";"             { map Genvar $2 }

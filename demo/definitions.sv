@@ -1,13 +1,18 @@
 `ifndef DEFINITIONS_SV
 `define DEFINITIONS_SV
 
+parameter PixelHeight = 5;
+
+  
 typedef struct packed {
     logic [7:0] red;
     logic [7:0] green;
     logic [7:0] blue;
 } Pixel;
 
-typedef Pixel PixelArray [5];
+typedef Pixel  PixelArray [PixelHeight];
+
+typedef logic [17:0] DistanceArray [PixelHeight];
 
 function automatic PixelArray incrementPixels(PixelArray pixels);
     for (int index = 0; index < 5; index++) begin
@@ -44,11 +49,51 @@ function automatic PixelArray noise(PixelArray pixels);
     return pixels;
 endfunction
 
-function automatic PixelArray initializePixels();
+function automatic PixelArray initializePixels(pixels);
     PixelArray pixels;
     for (int index = 0; index < 5; index++)
         pixels[index] = 0;
     return pixels;
+endfunction
+
+function automatic PixelArray average(PixelArray a, PixelArray b);
+    PixelArray result;
+    for (int index = 0; index < PixelHeight; index++) begin
+        logic [8:0] red, green, blue;
+        red   = 9'(a[index].red)   + 9'(b[index].red);
+        green = 9'(a[index].green) + 9'(b[index].green);
+        blue  = 9'(a[index].blue)  + 9'(b[index].blue);
+        result[index].red   = 8'(red   >> 1);
+        result[index].green = 8'(green >> 1);
+        result[index].blue  = 8'(blue  >> 1);
+    end
+    return result;
+endfunction
+
+function automatic PixelArray difference(PixelArray a, PixelArray b);
+    PixelArray result;
+    for (int index = 0; index < PixelHeight; index++) begin
+        result[index].red   = (a[index].red   >= b[index].red)
+                              ? a[index].red   - b[index].red
+                              : b[index].red   - a[index].red;
+        result[index].green = (a[index].green >= b[index].green)
+                              ? a[index].green - b[index].green
+                              : b[index].green - a[index].green;
+        result[index].blue  = (a[index].blue  >= b[index].blue)
+                              ? a[index].blue  - b[index].blue
+                              : b[index].blue  - a[index].blue;
+    end
+    return result;
+endfunction
+
+function automatic DistanceArray squaredDistance(PixelArray diff);
+    DistanceArray result;
+    for (int index = 0; index < PixelHeight; index++) begin
+        result[index] = (18'(diff[index].red)   * 18'(diff[index].red))
+                      + (18'(diff[index].green) * 18'(diff[index].green))
+                      + (18'(diff[index].blue)  * 18'(diff[index].blue));
+    end
+    return result;
 endfunction
 
 `endif

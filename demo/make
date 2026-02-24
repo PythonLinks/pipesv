@@ -2,8 +2,8 @@
 
 rm -f output.vcd
 rm -rf obj_dir
-
-verilator --cc --exe --build --trace --timing -o sim --top-module testbench sim_main.cpp testbench.sv detector.sv
+../bin/sv2v --pass-through detector.pl > detector.sv
+verilator --cc --exe --build --trace --timing -o sim --top-module testbench sim_main.cpp testbench.sv definitions.sv detector.sv
 if [ $? -ne 0 ]; then
     echo "Error: Compilation failed."
     exit 1
@@ -15,4 +15,4 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-gtkwave output.vcd
+#gtkwave output.vcd
