@@ -1,4 +1,3 @@
-`include "definitions.sv"
 
 module testbench (
     input logic clock
@@ -6,7 +5,7 @@ module testbench (
 
     integer cycle;
 
-    detector detectorInstance (
+    EdgeDetector detectorInstance (
         .clock(clock)
     );
 
@@ -35,11 +34,11 @@ module testbench (
             @(posedge clock); cycle = cycle + 1;
             $display("%5d | %3d %5d %4d | %3d %5d %4d | %3d %5d %4d | %3d %5d %4d | %3d %5d %4d",
                 cycle,
-                detectorInstance.pixelsWithEdge[0].red, detectorInstance.pixelsWithEdge[0].green, detectorInstance.pixelsWithEdge[0].blue,
-                detectorInstance.pixelsWithEdge[1].red, detectorInstance.pixelsWithEdge[1].green, detectorInstance.pixelsWithEdge[1].blue,
-                detectorInstance.pixelsWithEdge[2].red, detectorInstance.pixelsWithEdge[2].green, detectorInstance.pixelsWithEdge[2].blue,
-                detectorInstance.pixelsWithEdge[3].red, detectorInstance.pixelsWithEdge[3].green, detectorInstance.pixelsWithEdge[3].blue,
-                detectorInstance.pixelsWithEdge[4].red, detectorInstance.pixelsWithEdge[4].green, detectorInstance.pixelsWithEdge[4].blue
+                detectorInstance.pixels_createEdge[0].red, detectorInstance.pixels_createEdge[0].green, detectorInstance.pixels_createEdge[0].blue,
+                detectorInstance.pixels_createEdge[1].red, detectorInstance.pixels_createEdge[1].green, detectorInstance.pixels_createEdge[1].blue,
+                detectorInstance.pixels_createEdge[2].red, detectorInstance.pixels_createEdge[2].green, detectorInstance.pixels_createEdge[2].blue,
+                detectorInstance.pixels_createEdge[3].red, detectorInstance.pixels_createEdge[3].green, detectorInstance.pixels_createEdge[3].blue,
+                detectorInstance.pixels_createEdge[4].red, detectorInstance.pixels_createEdge[4].green, detectorInstance.pixels_createEdge[4].blue
             );
         end
 
@@ -50,11 +49,11 @@ module testbench (
             @(posedge clock); cycle = cycle + 1;
             $display("%5d | %3d %5d %4d | %3d %5d %4d | %3d %5d %4d | %3d %5d %4d | %3d %5d %4d",
                 cycle,
-                detectorInstance.pixelsWithNoise[0].red, detectorInstance.pixelsWithNoise[0].green, detectorInstance.pixelsWithNoise[0].blue,
-                detectorInstance.pixelsWithNoise[1].red, detectorInstance.pixelsWithNoise[1].green, detectorInstance.pixelsWithNoise[1].blue,
-                detectorInstance.pixelsWithNoise[2].red, detectorInstance.pixelsWithNoise[2].green, detectorInstance.pixelsWithNoise[2].blue,
-                detectorInstance.pixelsWithNoise[3].red, detectorInstance.pixelsWithNoise[3].green, detectorInstance.pixelsWithNoise[3].blue,
-                detectorInstance.pixelsWithNoise[4].red, detectorInstance.pixelsWithNoise[4].green, detectorInstance.pixelsWithNoise[4].blue
+                detectorInstance.pixels_addNoise[0].red, detectorInstance.pixels_addNoise[0].green, detectorInstance.pixels_addNoise[0].blue,
+                detectorInstance.pixels_addNoise[1].red, detectorInstance.pixels_addNoise[1].green, detectorInstance.pixels_addNoise[1].blue,
+                detectorInstance.pixels_addNoise[2].red, detectorInstance.pixels_addNoise[2].green, detectorInstance.pixels_addNoise[2].blue,
+                detectorInstance.pixels_addNoise[3].red, detectorInstance.pixels_addNoise[3].green, detectorInstance.pixels_addNoise[3].blue,
+                detectorInstance.pixels_addNoise[4].red, detectorInstance.pixels_addNoise[4].green, detectorInstance.pixels_addNoise[4].blue
             );
         end
 

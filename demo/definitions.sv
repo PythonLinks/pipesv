@@ -16,9 +16,9 @@ typedef logic [17:0] DistanceArray [PixelHeight];
 
 function automatic PixelArray incrementPixels(PixelArray pixels);
     for (int index = 0; index < 5; index++) begin
-        pixels[index].red   = pixels[index].red   + 1;
-        pixels[index].green = pixels[index].green + 1;
-        pixels[index].blue  = pixels[index].blue  + 1;
+        pixels[index].red   = pixels[index].red   + 1'b1;
+        pixels[index].green = pixels[index].green + 1'b1;
+        pixels[index].blue  = pixels[index].blue  + 1'b1;
     end
     return pixels;
 endfunction

@@ -118,6 +118,7 @@ executable sv2v
     Convert.Wildcard
     PipeSV.StageNames
     PipeSV.EditAst
+    PipeSV.GenerateVariables    
     -- sv2v CLI modules
     Bugpoint
     Job

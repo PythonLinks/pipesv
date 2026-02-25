@@ -4,11 +4,11 @@ module EdgeDetector (
     input logic clock//,    output Pixel resultOut
 );
     var PixelArray pixels;
-    initial pixels <= initializePixels();
+    //initial pixels = initializePixels(pixels);
 
     //Not dependent on the previous stage
     always @(posedge clock) 
-        pixels <= incrementPixels(pixels);
+    pixels <= incrementPixels(pixels);
 
     pipeline
         stage (createEdge)
@@ -16,7 +16,7 @@ module EdgeDetector (
             counter <= counter + 1;
             pixels <= createEdge(pixels, counter);
         stage (addNoise)
-            pixels <= addNoise(pixels);
+            pixels <= noise(pixels);
         stage (delay2_0)
             pixels <= pixels;
         stage (delay2_1)
@@ -27,21 +27,21 @@ module EdgeDetector (
             average2  <= average(pixels#{-1}, pixels#{-0});
         stage (delay)
             average2 <= average2;
-        stage(averageFour)
-            var PixelArray averageFour;
-            average4 <= average(averageTwo#{-3},averageTwo#{-1}); 	     
+        stage(average4)
+            var PixelArray average4;
+            average4 <= average(average2#{-2},average2#{-1});
         stage (delay4_1)
-            average2 <= average2;
+            average4 <= average4;
         stage (delay4_2)
-            average2 <= average2;
+            average4 <= average4;
         stage (delay4_3)
-            average2 <= average2;     
+            average4 <= average4;     
         stage(delta)    
-            reg  delta[PixelHeight];
+            var PixelArray delta;
             delta <= difference (average4#{-1}, average4#{-4});
         stage(distanceSquared) 
             reg [17:0] distanceSquared[PixelHeight];
-            distanceSquared <= distance (delta);
+            distanceSquared <= squaredDistance(delta);
         stage(detector)
             logic [0:0] result [PixelHeight];
             always @(posedge clock) begin
@@ -54,6 +54,6 @@ module EdgeDetector (
             end
     endpipeline
     wire resultOut[PixelHeight];
-    assign edgeOut = result;      
+    assign resultOut = result;      
 endmodule
 

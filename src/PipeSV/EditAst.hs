@@ -7,6 +7,7 @@ import System.IO (hPutStrLn, stderr)
 import System.Exit (exitFailure)
 
 import Language.SystemVerilog.AST
+import PipeSV.GenerateVariables (generateVariables)
 
 -- | Context passed down through the AST traversal.
 data StageContext = StageContext
@@ -22,8 +23,17 @@ emptyContext = StageContext [] Map.empty Nothing Set.empty
 
 -- | Top-level entry point. Rewrites all stage expressions in an AST.
 rewriteAST :: AST -> IO AST
-rewriteAST ast =
-    mapM (editAST emptyContext) ast
+rewriteAST ast = do
+    ast' <- mapM applyGenerateVariables ast
+    mapM (editAST emptyContext) ast'
+
+-- | Applies generateVariables to the items of a module Part.
+-- All other Description variants pass through unchanged.
+applyGenerateVariables :: Description -> IO Description
+applyGenerateVariables (Part attrs b kw lt name ports items) = do
+    items' <- generateVariables items
+    return (Part attrs b kw lt name ports items')
+applyGenerateVariables description = return description
 
 -- -------------------------------------------------------
 -- CalculateContext: enriches context as we descend the AST
@@ -74,7 +84,6 @@ instance EditAST Description where
 -- StageC is handled by expandModuleItem, which expands it into multiple items.
 instance EditAST ModuleItem where
     editAST context (Assign opt lhs expr) = do
-        checkLHS lhs
         expr' <- editAST context expr
         return (Assign opt lhs expr')
     editAST context (Statement stmt) = do
@@ -82,13 +91,13 @@ instance EditAST ModuleItem where
         return (Statement stmt')
     editAST _ mi = return mi
 
--- | Rewrites the RHS of assignments. Checks LHS for illegal stage expressions.
--- All other Stmt variants pass through unchanged.
+-- | Rewrites the RHS of assignments and renames the LHS root identifier
+-- to ident_stageName. All other Stmt variants pass through unchanged.
 instance EditAST Stmt where
     editAST context (Asgn op timing lhs expr) = do
-        checkLHS lhs
+        lhs'  <- renameLHS context lhs
         expr' <- editAST context expr
-        return (Asgn op timing lhs expr')
+        return (Asgn op timing lhs' expr')
     editAST _ stmt = return stmt
 
 -- | Rewrites stage expressions and plain identifiers. Recurses into compound
@@ -127,9 +136,8 @@ instance EditAST Expr where
         exprs' <- mapM (editAST context) exprs
         return (Concat exprs')
     editAST context (Call function args) = do
-        function' <- editAST context function
-        args'     <- editAST context args
-        return (Call function' args')
+        args' <- editAST context args
+        return (Call function args')
     editAST context (Bit e index) = do
         e' <- editAST context e
         return (Bit e' index)
@@ -284,8 +292,21 @@ offsetToInt :: Offset -> Int
 offsetToInt (Offset Positive n) = fromIntegral n
 offsetToInt (Offset Negative n) = -(fromIntegral n)
 
--- | Checks that a LHS does not contain a stage expression.
--- This is a safety placeholder; LHS cannot directly contain StageExpr
--- in the current AST.
-checkLHS :: LHS -> IO ()
-checkLHS _ = return ()
+-- | Renames the root identifier(s) of an LHS to ident_stageName when inside
+-- a stage. Local declarations (counter, etc.) are left unchanged.
+renameLHS :: StageContext -> LHS -> IO LHS
+renameLHS context lhs =
+    case contextIndex context of
+        Nothing -> return lhs
+        Just currentStageIndex ->
+            let stageName = contextStageNames context !! currentStageIndex
+            in renameRoot stageName lhs
+  where
+    renameRoot stageName (LHSIdent name)
+        | Set.member name (contextLocalDecls context) = return (LHSIdent name)
+        | otherwise = return (LHSIdent (name ++ "_" ++ stageName))
+    renameRoot stageName (LHSBit   lhs e)     = do lhs' <- renameRoot stageName lhs; return (LHSBit lhs' e)
+    renameRoot stageName (LHSRange lhs m r)   = do lhs' <- renameRoot stageName lhs; return (LHSRange lhs' m r)
+    renameRoot stageName (LHSDot   lhs x)     = do lhs' <- renameRoot stageName lhs; return (LHSDot lhs' x)
+    renameRoot stageName (LHSConcat lhss)     = do lhss' <- mapM (renameRoot stageName) lhss; return (LHSConcat lhss')
+    renameRoot stageName (LHSStream o e lhss) = do lhss' <- mapM (renameRoot stageName) lhss; return (LHSStream o e lhss')
