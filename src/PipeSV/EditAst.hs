@@ -79,7 +79,7 @@ instance EditAST Description where
         return (Part attrs b kw lt name ports items')
     editAST _ d = return d
 
--- | Handles Assign (checks LHS, rewrites RHS) and Statement (recurses into stmt).
+-- | Handles Assign, Statement, and AlwaysC (recurses into stmt).
 -- All other ModuleItem variants pass through unchanged.
 -- StageC is handled by expandModuleItem, which expands it into multiple items.
 instance EditAST ModuleItem where
@@ -89,15 +89,67 @@ instance EditAST ModuleItem where
     editAST context (Statement stmt) = do
         stmt' <- editAST context stmt
         return (Statement stmt')
+    editAST context (AlwaysC kw stmt) = do
+        stmt' <- editAST context stmt
+        return (AlwaysC kw stmt')
     editAST _ mi = return mi
 
--- | Rewrites the RHS of assignments and renames the LHS root identifier
--- to ident_stageName. All other Stmt variants pass through unchanged.
+-- | Rewrites assignments (renames LHS root, rewrites RHS) and recurses into
+-- all compound statement variants so that identifiers nested inside explicit
+-- always blocks are renamed by the same rules as top-level stage statements.
 instance EditAST Stmt where
     editAST context (Asgn op timing lhs expr) = do
         lhs'  <- renameLHS context lhs
         expr' <- editAST context expr
         return (Asgn op timing lhs' expr')
+    editAST context (Block kind name decls stmts) = do
+        let context' = addBlockLocals context decls
+        stmts' <- mapM (editAST context') stmts
+        return (Block kind name decls stmts')
+    editAST context (If check cond thenStmt elseStmt) = do
+        cond'     <- editAST context cond
+        thenStmt' <- editAST context thenStmt
+        elseStmt' <- editAST context elseStmt
+        return (If check cond' thenStmt' elseStmt')
+    editAST context (For inits cond updates body) = do
+        cond' <- editAST context cond
+        body' <- editAST context body
+        return (For inits cond' updates body')
+    editAST context (While cond body) = do
+        cond' <- editAST context cond
+        body' <- editAST context body
+        return (While cond' body')
+    editAST context (RepeatL count body) = do
+        count' <- editAST context count
+        body'  <- editAST context body
+        return (RepeatL count' body')
+    editAST context (DoWhile cond body) = do
+        cond' <- editAST context cond
+        body' <- editAST context body
+        return (DoWhile cond' body')
+    editAST context (Forever body) = do
+        body' <- editAST context body
+        return (Forever body')
+    editAST context (Foreach name dims body) = do
+        body' <- editAST context body
+        return (Foreach name dims body')
+    editAST context (Timing timing body) = do
+        body' <- editAST context body
+        return (Timing timing body')
+    editAST context (Wait expr body) = do
+        expr' <- editAST context expr
+        body' <- editAST context body
+        return (Wait expr' body')
+    editAST context (StmtAttr attr body) = do
+        body' <- editAST context body
+        return (StmtAttr attr body')
+    editAST context (Return expr) = do
+        expr' <- editAST context expr
+        return (Return expr')
+    editAST context (Subroutine expr args) = do
+        expr' <- editAST context expr
+        args' <- editAST context args
+        return (Subroutine expr' args')
     editAST _ stmt = return stmt
 
 -- | Rewrites stage expressions and plain identifiers. Recurses into compound
@@ -158,6 +210,15 @@ instance EditAST Args where
 -- -------------------------------------------------------
 -- Helpers
 -- -------------------------------------------------------
+
+-- | Extends contextLocalDecls with the names declared in a Block's [Decl]
+-- list, so that block-local variables (e.g. loop counters) are not renamed
+-- by applyDefaultOffset when recursing into the block's statements.
+addBlockLocals :: StageContext -> [Decl] -> StageContext
+addBlockLocals context decls =
+    let names = [name | Variable _ _ name _ _ <- decls]
+             ++ [name | Net _ _ _ _ name _ _ <- decls]
+    in context { contextLocalDecls = Set.union (contextLocalDecls context) (Set.fromList names) }
 
 -- | Expands a StageC into its constituent module items; passes all other
 -- items through unchanged.

@@ -46,7 +46,7 @@ module EdgeDetector (
             logic [0:0] result [PixelHeight];
             always @(posedge clock) begin
                 for (int ii = 0; ii < 5; ii++) begin
-                    if (distanceSquared[ii] > 8'd100)
+                    if (distanceSquared[ii] > 100)
                         result[ii] <= 1'b1;
                     else
                         result[ii] <= 1'b0;
@@ -54,6 +54,8 @@ module EdgeDetector (
             end
     endpipeline
     wire resultOut[PixelHeight];
-    assign resultOut = result;      
+    // When accessing pipeline variable from outside of the pipeline,
+    // be careful to use the right name. 
+    assign resultOut = result_detector;      
 endmodule
 

@@ -1,3 +1,7 @@
+Right hand side variables can be defined which do not actualy exist.
+It should generate an error message.
+Variables defined in a stage should be expanded, the original ignored. 
+
 Also, there are 3 basic design patterns that I'm aware of for building pipelines, there may be others. Using Spinal naming here. 
 
 Registers: data only, your case

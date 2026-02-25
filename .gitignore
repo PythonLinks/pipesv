@@ -8,3 +8,5 @@ bin/
 .DS_Store
 output.sv
 dist-newstyle/
+output.sv.txt
+input.pl.txt
