@@ -84,8 +84,16 @@ editNameByIndex context currentStageIndex ident targetIndex
         return ident
 
     -- Target is a valid stage: rename to ident_stageName
-    | otherwise =
-        return $ ident ++ "_" ++ (contextStageNames context !! targetIndex)
+    | otherwise = do
+        let newName = ident ++ "_" ++ (contextStageNames context !! targetIndex)
+        if Set.member newName (validRHSNames context)
+            then return newName
+            else do
+                hPutStrLn stderr $ "Error in NameResolution.editNameByIndex: '"
+                    ++ newName ++ "' does not exist; '"
+                    ++ ident ++ "' is not assigned in stage '"
+                    ++ (contextStageNames context !! targetIndex) ++ "'"
+                exitFailure
 
   where
     lastIndex = length (contextStageNames context) - 1
@@ -102,8 +110,16 @@ applyDefaultOffset context currentStageIndex name
         hPutStrLn stderr $ "Error in NameResolution.applyDefaultOffset: "
             ++ "default -1 offset out of bounds for " ++ name
         exitFailure
-    | otherwise =
-        return $ Ident (name ++ "_" ++ (contextStageNames context !! tgt))
+    | otherwise = do
+        let newName = name ++ "_" ++ (contextStageNames context !! tgt)
+        if Set.member newName (validRHSNames context)
+            then return (Ident newName)
+            else do
+                hPutStrLn stderr $ "Error in NameResolution.applyDefaultOffset: '"
+                    ++ newName ++ "' does not exist; '"
+                    ++ name ++ "' is not assigned in stage '"
+                    ++ (contextStageNames context !! tgt) ++ "'"
+                exitFailure
   where
     tgt = currentStageIndex - 1
 

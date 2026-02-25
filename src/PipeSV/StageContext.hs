@@ -11,11 +11,12 @@ data StageContext = StageContext
     , nameToIndex       :: Map.Map String Int
     , contextIndex      :: Maybe Int
     , contextLocalDecls :: Set.Set String
+    , validRHSNames     :: Set.Set String
     }
 
 -- | Initial context with no stages, no current index, and no local declarations.
 emptyContext :: StageContext
-emptyContext = StageContext [] Map.empty Nothing Set.empty
+emptyContext = StageContext [] Map.empty Nothing Set.empty Set.empty
 
 -- -------------------------------------------------------
 -- CalculateContext: enriches context as we descend the AST
@@ -25,13 +26,14 @@ emptyContext = StageContext [] Map.empty Nothing Set.empty
 class CalculateContext a where
     calculateContext :: StageContext -> a -> StageContext
 
--- | When entering a module, collects stage names in order and builds
--- the name-to-index map.
+-- | When entering a module, collects stage names in order, builds the
+-- name-to-index map, and collects all declared names for RHS validation.
 instance CalculateContext Description where
     calculateContext context (Part _ _ Module _ _ _ items) =
-        let names  = [n | StageC _ (Stage n _) <- items]
-            index  = Map.fromList $ zip names [0..]
-        in context { contextStageNames = names, nameToIndex = index }
+        let names      = [n | StageC _ (Stage n _) <- items]
+            index      = Map.fromList $ zip names [0..]
+            validNames = collectDeclaredNames items
+        in context { contextStageNames = names, nameToIndex = index, validRHSNames = validNames }
     calculateContext context _ = context
 
 -- | When entering a stage, records the stage's index and the set of locally
@@ -42,6 +44,17 @@ instance CalculateContext Stage where
             registers = Set.fromList [i | MIPackageItem (Decl (Variable _ _ i _ _)) <- items]
             wires     = Set.fromList [i | MIPackageItem (Decl (Net _ _ _ _ i _ _))  <- items]
         in context { contextIndex = Just index, contextLocalDecls = Set.union registers wires }
+
+-- | Collects all declared variable and net names from a module's item list,
+-- including names declared inside stage bodies. Used to validate RHS
+-- identifier references in Pass 2.
+collectDeclaredNames :: [ModuleItem] -> Set.Set String
+collectDeclaredNames items = Set.fromList $ concatMap extractName items
+  where
+    extractName (MIPackageItem (Decl (Variable _ _ name _ _))) = [name]
+    extractName (MIPackageItem (Decl (Net _ _ _ _ name _ _)))  = [name]
+    extractName (StageC _ (Stage _ stageItems))                = concatMap extractName stageItems
+    extractName _                                              = []
 
 -- | Extends contextLocalDecls with the names declared in a Block's [Decl]
 -- list, so that block-local variables (e.g. loop counters) are not renamed

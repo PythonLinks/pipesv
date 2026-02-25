@@ -2,6 +2,12 @@ Right hand side variables can be defined which do not actualy exist.
 It should generate an error message.
 Variables defined in a stage should be expanded, the original ignored. 
 
+
+if a variable and a function share the
+  same name in your codebase, we'd skip validating the function reference. But that's a very narrow
+  case.
+
+
 Also, there are 3 basic design patterns that I'm aware of for building pipelines, there may be others. Using Spinal naming here. 
 
 Registers: data only, your case
