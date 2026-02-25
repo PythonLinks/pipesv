@@ -54,7 +54,7 @@ module EdgeDetector (
             end
     endpipeline
     wire resultOut[PixelHeight];
-    // When accessing pipeline variable from outside of the pipeline,
+    // When accessing pipeline variables from outside of the pipeline,
     // be careful to use the right name. 
     assign resultOut = result_detector;      
 endmodule

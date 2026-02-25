@@ -1,25 +1,14 @@
 module PipeSV.EditAst where
 
 import Data.List (partition)
-import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import System.IO (hPutStrLn, stderr)
 import System.Exit (exitFailure)
 
 import Language.SystemVerilog.AST
+import PipeSV.StageContext
+import PipeSV.NameResolution
 import PipeSV.GenerateVariables (generateVariables)
-
--- | Context passed down through the AST traversal.
-data StageContext = StageContext
-    { contextStageNames :: [String]
-    , nameToIndex       :: Map.Map String Int
-    , contextIndex      :: Maybe Int
-    , contextLocalDecls :: Set.Set String
-    }
-
--- | Initial context with no stages, no current index, and no local declarations.
-emptyContext :: StageContext
-emptyContext = StageContext [] Map.empty Nothing Set.empty
 
 -- | Top-level entry point. Rewrites all stage expressions in an AST.
 rewriteAST :: AST -> IO AST
@@ -34,32 +23,6 @@ applyGenerateVariables (Part attrs b kw lt name ports items) = do
     items' <- generateVariables items
     return (Part attrs b kw lt name ports items')
 applyGenerateVariables description = return description
-
--- -------------------------------------------------------
--- CalculateContext: enriches context as we descend the AST
--- -------------------------------------------------------
-
--- | Traverses the AST top-down to compute and refine the context at each level.
-class CalculateContext a where
-    calculateContext :: StageContext -> a -> StageContext
-
--- | When entering a module, collects stage names in order and builds
--- the name-to-index map.
-instance CalculateContext Description where
-    calculateContext context (Part _ _ Module _ _ _ items) =
-        let names  = [n | StageC _ (Stage n _) <- items]
-            index  = Map.fromList $ zip names [0..]
-        in context { contextStageNames = names, nameToIndex = index }
-    calculateContext context _ = context
-
--- | When entering a stage, records the stage's index and the set of locally
--- declared register and wire names.
-instance CalculateContext Stage where
-    calculateContext context (Stage name items) =
-        let index     = Map.findWithDefault 0 name (nameToIndex context)
-            registers = Set.fromList [i | MIPackageItem (Decl (Variable _ _ i _ _)) <- items]
-            wires     = Set.fromList [i | MIPackageItem (Decl (Net _ _ _ _ i _ _))  <- items]
-        in context { contextIndex = Just index, contextLocalDecls = Set.union registers wires }
 
 -- -------------------------------------------------------
 -- EditAST: rewrites stage expressions using the context
@@ -155,13 +118,15 @@ instance EditAST Stmt where
 -- | Rewrites stage expressions and plain identifiers. Recurses into compound
 -- expressions. All other Expr variants pass through unchanged.
 instance EditAST Expr where
+
     -- Stage expressions: apply renaming rules
-    editAST context (StageExpr se) = do
+    editAST context (StageExpr se) =
         case contextIndex context of
             Nothing -> do
                 hPutStrLn stderr "Error: stage expression appears outside of a stage"
                 exitFailure
             Just currentStageIndex -> editStageExpr context currentStageIndex se
+
     -- Plain identifiers: apply default -1 offset
     editAST context (Ident name) =
         case contextIndex context of
@@ -196,6 +161,7 @@ instance EditAST Expr where
     editAST context (Range e mode r) = do
         e' <- editAST context e
         return (Range e' mode r)
+
     -- All other expressions: pass through unchanged
     editAST _ expr = return expr
 
@@ -208,17 +174,14 @@ instance EditAST Args where
         return (Args positional' keyword')
 
 -- -------------------------------------------------------
--- Helpers
+-- Stage expansion
 -- -------------------------------------------------------
 
--- | Extends contextLocalDecls with the names declared in a Block's [Decl]
--- list, so that block-local variables (e.g. loop counters) are not renamed
--- by applyDefaultOffset when recursing into the block's statements.
-addBlockLocals :: StageContext -> [Decl] -> StageContext
-addBlockLocals context decls =
-    let names = [name | Variable _ _ name _ _ <- decls]
-             ++ [name | Net _ _ _ _ name _ _ <- decls]
-    in context { contextLocalDecls = Set.union (contextLocalDecls context) (Set.fromList names) }
+-- expandModuleItem and expandStage remain here rather than in a separate
+-- StageExpand module because they are mutually entangled with editAST:
+-- expandStage calls editAST to rewrite expressions, and the EditAST instance
+-- for Description calls expandModuleItem. Separating them would require
+-- passing editAST as a function parameter.
 
 -- | Expands a StageC into its constituent module items; passes all other
 -- items through unchanged.
@@ -258,116 +221,3 @@ expandStage context stage = do
 isStatement :: ModuleItem -> Bool
 isStatement (Statement _) = True
 isStatement _             = False
-
--- | Edits a stage expression to a plain Verilog expression by renaming
--- the identifier to its target-stage name via editName.
-editStageExpr :: StageContext -> Int -> StageExpression -> IO Expr
-
--- a(-1)      →  a_previousStageName
---            →  Ident "a_previousStageName"
-editStageExpr context currentStageIndex (StageOffset ident offset) = do
-    newName <- editName context currentStageIndex ident offset
-    return (Ident newName)
-
--- a(-1)[3]   →  a_previousStageName[3]
---            →  Bit (Ident "a_previousStageName") 3
-editStageExpr context currentStageIndex (StageSelect ident offset index) = do
-    newName <- editName context currentStageIndex ident offset
-    return (Bit (Ident newName) index)
-
--- a(-1)[3:0] →  a_previousStageName[3:0]
---            →  Range (Ident "a_previousStageName") mode r
-editStageExpr context currentStageIndex (StageRange ident offset (mode, r)) = do
-    newName <- editName context currentStageIndex ident offset
-    return (Range (Ident newName) mode r)
-
--- | Calculates the new name of a reg or wire on the right-hand side.
--- Dispatches to editNameByIndex after resolving the StageIdentifier to a target index.
-editName :: StageContext -> Int -> String -> StageIdentifier -> IO String
-editName context currentStageIndex ident (StageByOffset offset) =
-    editNameByIndex context currentStageIndex ident
-        (currentStageIndex + offsetToInt offset)
-editName context _ ident (StageByName name) =
-    case Map.lookup name (nameToIndex context) of
-        Nothing ->
-            do hPutStrLn stderr $ "Error in EditAst.editName: unknown stage name '"
-                    ++ name ++ "' in expression " ++ ident ++ "#{" ++ name ++ "}"
-               exitFailure
-        Just targetIndex -> editNameByIndex context targetIndex ident targetIndex
-
--- | Handles bounds checking and renaming once the target stage index is known.
--- Returns "ident_stageName" for valid stages, or the original ident for index -1 (port input).
-editNameByIndex :: StageContext -> Int -> String -> Int -> IO String
-editNameByIndex context currentStageIndex ident targetIndex
-    -- Variable is declared in the current stage
-    | Set.member ident (contextLocalDecls context) =
-        if targetIndex /= currentStageIndex
-            then do
-                -- Reference to a local variable from another stage: error
-                hPutStrLn stderr $ "Error in EditAst.editNameByIndex: "
-                    ++ ident ++ " is declared in the current stage and cannot be referenced from another stage"
-                exitFailure
-            else do
-                -- Same-stage reference to a local: redundant but legal, warn and continue
-                hPutStrLn stderr $ "Warning: " ++ ident ++ " with same-stage reference is redundant"
-                return ident
-
-    -- Target stage is before the first stage: error
-    | targetIndex < -1 = do
-        hPutStrLn stderr $ "Error in EditAst.editNameByIndex: stage reference for " ++ ident ++ " is too far back"
-        exitFailure
-
-    -- Target stage is after the last stage: error
-    | targetIndex > lastIndex = do
-        hPutStrLn stderr $ "Error in EditAst.editNameByIndex: stage reference for " ++ ident ++ " is too far forward"
-        exitFailure
-
-    -- Target is -1: this is a port input, leave the name unchanged
-    | targetIndex == -1 =
-        return ident
-
-    -- Target is a valid stage: rename to ident_stageName
-    | otherwise =
-        return $ ident ++ "_" ++ (contextStageNames context !! targetIndex)
-    where lastIndex = length (contextStageNames context) - 1
-
--- | Applies the implicit default offset of -1 to a plain identifier inside
--- a stage. Returns the original name unchanged if the target is -1 (port input).
--- a  →  a_previousStageName
---    →  Ident "a_previousStageName"
-applyDefaultOffset :: StageContext -> Int -> String -> IO Expr
-applyDefaultOffset context currentStageIndex name
-    | tgt == -1 =
-        return (Ident name)
-    | tgt < -1  = do
-        hPutStrLn stderr $ "Error: default -1 offset out of bounds for " ++ name
-        exitFailure
-    | otherwise =
-        return $ Ident (name ++ "_" ++ (contextStageNames context !! tgt))
-    where tgt = currentStageIndex - 1
-
--- | Converts an Offset to a signed Int. Negative offsets refer to past stages.
--- Offset Negative 1  →  -1
--- Offset Positive 1  →   1
-offsetToInt :: Offset -> Int
-offsetToInt (Offset Positive n) = fromIntegral n
-offsetToInt (Offset Negative n) = -(fromIntegral n)
-
--- | Renames the root identifier(s) of an LHS to ident_stageName when inside
--- a stage. Local declarations (counter, etc.) are left unchanged.
-renameLHS :: StageContext -> LHS -> IO LHS
-renameLHS context lhs =
-    case contextIndex context of
-        Nothing -> return lhs
-        Just currentStageIndex ->
-            let stageName = contextStageNames context !! currentStageIndex
-            in renameRoot stageName lhs
-  where
-    renameRoot stageName (LHSIdent name)
-        | Set.member name (contextLocalDecls context) = return (LHSIdent name)
-        | otherwise = return (LHSIdent (name ++ "_" ++ stageName))
-    renameRoot stageName (LHSBit   lhs e)     = do lhs' <- renameRoot stageName lhs; return (LHSBit lhs' e)
-    renameRoot stageName (LHSRange lhs m r)   = do lhs' <- renameRoot stageName lhs; return (LHSRange lhs' m r)
-    renameRoot stageName (LHSDot   lhs x)     = do lhs' <- renameRoot stageName lhs; return (LHSDot lhs' x)
-    renameRoot stageName (LHSConcat lhss)     = do lhss' <- mapM (renameRoot stageName) lhss; return (LHSConcat lhss')
-    renameRoot stageName (LHSStream o e lhss) = do lhss' <- mapM (renameRoot stageName) lhss; return (LHSStream o e lhss')
