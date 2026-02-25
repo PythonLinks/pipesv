@@ -47,6 +47,7 @@ data Job = Job
     , siloed :: Bool
     , skipPreprocessor :: Bool
     , passThrough :: Bool
+    , pipesv      :: Bool
     , exclude :: [Exclude]
     , verbose :: Bool
     , write :: Write
@@ -82,6 +83,8 @@ defaultJob = Job
         &= help "Disable preprocessing of macros, comments, etc."
     , passThrough = nam_ "pass-through" &= help "Dump input without converting"
         &= groupname "Conversion"
+    , pipesv = nam "pipesv"
+        &= help "Run PipeSV transforms before conversion"
     , exclude = nam_ "exclude" &= name "E" &= typ "CONV"
         &= help ("Exclude a particular conversion (Always, Assert, Interface,"
             ++ " Logic, SeverityTask, or UnbasedUnsized)")

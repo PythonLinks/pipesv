@@ -105,16 +105,21 @@ main = do
         Right inputs -> do
             let (inPaths, asts) = unzip inputs
 
-            -- convert the files if requested
+            -- run PipeSV transforms if requested
             let converter = convert (top job) (dumpPrefix job) (exclude job)
-            asts' <-
+            asts' <- if pipesv job
+                then mapM rewriteAST asts
+                else return asts
+
+            -- convert the files if requested
+            asts'' <-
                 if passThrough job then
-                    mapM rewriteAST asts
+                    return asts'
                 else if bugpoint job /= [] then
-                    runBugpoint (bugpoint job) converter asts
+                    runBugpoint (bugpoint job) converter asts'
                 else
-                    converter asts
-            emptyWarnings (concat asts) (concat asts')
+                    converter asts'
+            emptyWarnings (concat asts) (concat asts'')
             -- write the converted files out
-            writeOutput (write job) inPaths asts'
+            writeOutput (write job) inPaths asts''
             exitSuccess

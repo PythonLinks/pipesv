@@ -103,8 +103,20 @@ exact (compatible) versions of the compiler and sv2v's build dependencies.
 You can install the binary to your local bin path (typically `~/.local/bin`) by
 running `stack install`, or copy over the executable manually.
 
+## PipesSV Usage
 
-## Usage
+PipeSV adds a single option to sv2v.  The --pipesv processes `pipeline` and `stage` keywords.
+PipeSV operates on a single file.  You may then add the output to a multi-file sv2v process.
+Here is how they would normally be used.
+
+```
+pipesv/bin/sv2v --pipesv --pass-through file.sv   # PipeSV transforms only, inspect output
+pipesv/bin/sv2v --pipesv file.sv                   # PipeSV transforms + full sv2v Convert
+pipesv/bin/sv2v --pass-through file.sv             # Parse and dump, no transforms
+pipesv/bin/sv2v file.sv                            # Full sv2v Convert, no PipeSV
+```
+
+## sv2vUsage
 
 sv2v takes in a list of files and prints the converted Verilog to `stdout` by
 default. Users should typically pass all of their SystemVerilog source files to
@@ -136,6 +148,7 @@ Conversion:
      --pass-through         Dump input without converting
   -E --exclude=CONV         Exclude a particular conversion (Always, Assert,
                             Interface, Logic, SeverityTask, or UnbasedUnsized)
+  -p --pipesv               Process pipelines first. 			    
   -v --verbose              Retain certain conversion artifacts
   -w --write=MODE/FILE/DIR  How to write output; default is 'stdout'; use
                             'adjacent' to create a .v file next to each input;

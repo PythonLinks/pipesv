@@ -2,7 +2,7 @@
 
 rm -f output.vcd
 rm -rf obj_dir
-../bin/sv2v --pass-through detector.pl > detector.sv
+../bin/sv2v --pipesv --pass-through detector.pl > detector.sv
 verilator --cc --exe --build --trace --timing -o sim --top-module testbench sim_main.cpp testbench.sv definitions.sv detector.sv
 if [ $? -ne 0 ]; then
     echo "Error: Compilation failed."
