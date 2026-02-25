@@ -11,38 +11,38 @@ module EdgeDetector (
     pixels <= incrementPixels(pixels);
 
     pipeline
-        stage (createEdge)
+        stage #{createEdge}
             logic [7:0] counter = 0;
             counter <= counter + 1;
             pixels <= createEdge(pixels, counter);
-        stage (addNoise)
+        stage #{addNoise}
             pixels <= noise(pixels);
-        stage (delay2_0)
+        stage #{delay2_0}
             pixels <= pixels;
-        stage (delay2_1)
+        stage #{delay2_1}
             pixels <= pixels;    
-        stage(averagePixels)
+        stage #{averagePixels}
  	    pixels <= pixels;
             var PixelArray average2 ;
             average2  <= average(pixels#{-1}, pixels#{-0});
-        stage (delay)
+        stage #{delay}
             average2 <= average2;
-        stage(average4)
+        stage #{average4}
             var PixelArray average4;
             average4 <= average(average2#{-2},average2#{-1});
-        stage (delay4_1)
+        stage #{delay4_1}
             average4 <= average4;
-        stage (delay4_2)
+        stage #{delay4_2}
             average4 <= average4;
-        stage (delay4_3)
+        stage #{delay4_3}
             average4 <= average4;     
-        stage(delta)    
+        stage #{delta}    
             var PixelArray delta;
             delta <= difference (average4#{-1}, average4#{-4});
-        stage(distanceSquared) 
+        stage #{distanceSquared}
             reg [17:0] distanceSquared[PixelHeight];
             distanceSquared <= squaredDistance(delta);
-        stage(detector)
+        stage #{detector}
             logic [0:0] result [PixelHeight];
             always @(posedge clock) begin
                 for (int ii = 0; ii < 5; ii++) begin

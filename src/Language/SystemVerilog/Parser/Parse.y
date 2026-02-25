@@ -1142,9 +1142,9 @@ StageKW :: { StageKW }
 
 
 StageDeclaration :: { [ModuleItem] }
-  : StageKW "(" Identifier ")" StageItems
+  : StageKW "#{" Identifier "}" StageItems
                     { [StageC $1 (Stage $3 $5)] }
-  | StageKW "(" Identifier ")" StageItems "endstage"
+  | StageKW "#{" Identifier "}" StageItems "endstage"
                     { [StageC $1 (Stage $3 $5), EndStageC] }
 
 PipelineKW :: { PipelineKW }

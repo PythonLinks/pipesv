@@ -123,7 +123,7 @@ data Stage = Stage String [ModuleItem]
 
 instance Show Stage where
     show (Stage name items) =
-        printf "(%s)\n%s" name (indent $ unlines' $ map show items)
+        printf "#{%s}\n%s" name (indent $ unlines' $ map show items)
 
 instance Show StageKW where
     show StageKW = "// stage"
