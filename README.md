@@ -71,7 +71,7 @@ statements and blocks. The stage provides a default `always @(posedge
 clock)` to any dangling statements that need it, but one can also add always
 blocks with custom sensitivity lists.  Multiple stages can have a
 `reg`, `wire`, or `logic` variable with the same name, the transpiler appends the stage
-name to each one to prevent clashes.  The resulting verilog:
+name to variable names to prevent clashes.  The resulting verilog:
 
 ```pixels_addNoise <= addNoise(pixels_input);```
 
@@ -88,9 +88,8 @@ PipeSV is a fork of [the `sv2v`](https://github.com/zachjs/sv2v) System
 Verilog parser.  PipeSV adds `Pipeline` and `Stage` nodes to the sv2v
 Abstract Syntax Tree (ASt).  PipeSV also processes those nodes to
 create legal System Verilog, which can then be further transformed by
-sv2v into legal Verilog and fed to the Yosys synthesiser.  So PipeSV
-adds two keywords to System Verilog, but it is also able to convert
-System Verilog to Verilog and synthesize with Yosys.
+sv2v into legal Verilog and fed to the Yosys synthesiser.  So PipeSV is also able to convert
+pipelined System Verilog to Verilog and synthesize with Yosys.
 
 
 `sv2v` converts SystemVerilog ([IEEE 1800-2017]) to
