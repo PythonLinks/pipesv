@@ -1,6 +1,7 @@
 #!/bin/bash
 
 rm -f output.vcd
+rm detector.sv
 rm -f output.png
 rm -rf obj_dir
 ../bin/sv2v --pipesv --pass-through detector.pl > detector.sv
@@ -15,5 +16,5 @@ if [ $? -ne 0 ]; then
     echo "Error: Simulation failed."
     exit 1
 fi
-ffmpeg -y  -f rawvideo -pix_fmt rgb24 -s 256*256 -i image.raw -update 1 output.png  ;open output.png
+#ffmpeg -y  -f rawvideo -pix_fmt rgb24 -s 256*256 -i image.raw -update 1 output.png  ;open output.png
 #gtkwave output.vcd
