@@ -14,7 +14,7 @@ and `pipeline` keywords, to System Verilog.
 ```
 
 Here is an example extracted from [the larger edge detector
-source code](./demo/detector.pl).  You can alsoread [the generated System Verilog](./demo/detector.sv).
+source code](./demo/detector.pl).  
 
 ```
 pipeline
@@ -35,9 +35,11 @@ pipeline
 endpipeline
 ```
 
-The source code is much more terse and readable than traditional
-System Verilog, so it can be modified faster.  The syntax prevents a
-number of possible inconsistencies in traditional code.
+You can also read [the generated System
+Verilog](./demo/detector.sv). The source code is more terse and
+readable than traditional System Verilog, so it can be modified
+faster.  The syntax prevents a number of possible inconsistencies with
+indexes in traditionally written code.
 
 
 
@@ -51,7 +53,7 @@ Spade HDL. SpinalHDL also has great pipeline abstractions.
 
 There are a number of hardware definition languages (HDLs), but in the
 author's experience, they are either hard to learn, or add a great
-deal of complexity to the resulting verilog, making the resulting
+deal of complexity to the generated output, making the resulting
 System Verilog harder to read and debug.
 
 PipeSV uses System Verilog as its base language and just adds two very
@@ -83,7 +85,7 @@ More importantly the source code can be quickly edited without risk of making an
 ## PipeSV Vs sv2v
 
 PipeSV is a fork of [the `sv2v`](https://github.com/zachjs/sv2v) System
-Verilog parser.  PipeSV adds 'Pipeline' and `Stage` nodes to the sv2v
+Verilog parser.  PipeSV adds `Pipeline` and `Stage` nodes to the sv2v
 Abstract Syntax Tree (ASt).  PipeSV also processes those nodes to
 create legal System Verilog, which can then be further transformed by
 sv2v into legal Verilog and fed to the Yosys synthesiser.  So PipeSV
