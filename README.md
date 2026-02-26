@@ -59,8 +59,11 @@ blocks with custom sensitivity lists.  Multiple stages can have a
 name to each one to prevent clashes.  The resulting verilog:
 
 ```pixels_addNoise <= addNoise(pixels_input);```
+
 is much more readable and maintainable than 
+
 ```pixels[1] <= addNoise(pixels[0]);```
+
 More importantly the source code can be quickly edited without risk of making an error in the offsets.  
 
 Why is this approach being taken?  Most of the HDLs based on various
@@ -73,7 +76,7 @@ understand Verilog.
 
 ## PipeSV Vs sv2v
 
-PipeSV is a [fork of `sv2v`](https://github.com/zachjs/sv2v) System
+PipeSV is a fork of [the `sv2v`](https://github.com/zachjs/sv2v) System
 Verilog parser.  PipeSV adds 'Pipeline' and `Stage` nodes to the sv2v
 Abstract Syntax Tree (ASt).  PipeSV also processes those nodes to
 create legal System Verilog, which can then be further transformed by
@@ -132,7 +135,7 @@ running `stack install`, or copy over the executable manually.
 
 PipeSV adds a single option to `sv2v`.  The --pipesv option processes
 `pipeline` and `stage` keywords after preprocessing and before converting to Verilog.  From the repository root directory,
-ere is how to use PipeSV on a single file with the output going to stdout.
+here is how to use PipeSV on a single file with the output going to stdout.
 
 ```
 bin/sv2v --pass-through file.sv             # Parse and dump, no transforms
