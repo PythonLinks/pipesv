@@ -3,15 +3,19 @@
 Pipelines are very important in digital circuit design, but they are
 not directly supported by System Verilog; there are no `stage` nor
 `pipeline` keywords.  PipeSV is a preprocessor which adds the `stage`
-and `pipeline` keywords, to System Verilog. Here is an example
-extracted from [the larger edge detector demo](./demo/detector.pl).
-```
+and `pipeline` keywords, to System Verilog. 
+
+```diff
 - Feb 26, 2025 This is the first release, use at your own risk.
-- It works, but it is being polished up. 
+- It works, but it is still being polished up. 
 - By next week it should be quite good.
 - Within two weeks the next release will allow one 
 - process an image through a video pipeline and redisplay it.
 ```
+
+Here is an example extracted from [the larger edge detector
+demo](./demo/detector.pl).  You can read [the generated
+Verilog](./demo/detector.sv).
 
 ```
 pipeline(PositiveEdge)

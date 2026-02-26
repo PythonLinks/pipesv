@@ -2,6 +2,10 @@
 module EdgeDetector (clock);
 	input logic clock;
 	PixelArray pixels;
+	logic [7:0] counter = 0;
+	initial begin
+		pixels = initializePixels(pixels);
+		end
 	always @(posedge clock)
 		pixels <= incrementPixels(pixels);
 	// pipeline
@@ -9,8 +13,8 @@ module EdgeDetector (clock);
 		logic [7:0] counter_createEdge = 0;
 		PixelArray pixels_createEdge;
 		always @(posedge clock) begin
-			counter_createEdge <= counter_createEdge + 1;
-			pixels_createEdge <= createEdge(pixels, counter_createEdge);
+			counter_createEdge <= counter + 1;
+			pixels_createEdge <= createEdge(pixels, counter);
 			end
 	// stage #{addNoise}
 		PixelArray pixels_addNoise;
