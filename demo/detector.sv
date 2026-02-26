@@ -19,7 +19,7 @@ module EdgeDetector (clock);
 	// stage #{addNoise}
 		PixelArray pixels_addNoise;
 		always @(posedge clock)
-			pixels_addNoise <= noise(pixels_createEdge);
+			pixels_addNoise <= addNoise(pixels_createEdge);
 	// stage #{delay2_0}
 		PixelArray pixels_delay2_0;
 		always @(posedge clock)

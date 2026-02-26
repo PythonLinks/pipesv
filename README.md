@@ -9,7 +9,7 @@ and `pipeline` keywords, to System Verilog.
 - Feb 26, 2025 This is the first release, use at your own risk.
 - It works, but it is still being polished up. 
 - By next week it should be quite good.
-- Within two weeks the next release will allow one 
+- Within two weeks the next release will enable one 
 - process an image through a video pipeline and redisplay it.
 ```
 
@@ -23,7 +23,7 @@ pipeline(PositiveEdge)
       counter <= counter + 1;
       pixels <= createEdge(pixels, counter);
   stage #{addNoise}
-      pixels <= noise(pixels);
+      pixels <= addNoise(pixels);
   stage #{firstDelay}
       pixels <= pixels;
   stage #{secondDelay}
@@ -45,11 +45,6 @@ author's experience, they are either hard to learn, or add a great
 deal of complexity to the resulting verilog, making the resulting
 System Verilog harder to read and debug. PipeSV generates very
 readable SystemVerilog, which is easy to debug with traditional tools.
-
-PipeSV is a small modification to the mature, and well tested "[System
-Verilog to Verilog](https://github.com/zachjs/sv2v)" (sv2v) Haskell
-application described below.  So PipeSV is also able to convert
-System Verilog to Verilog and synthesize with Yosys.
 
 The [inspiration for this pipeline
 abstraction](https://docs.spade-lang.org/pipelines.html) comes from the
@@ -76,15 +71,15 @@ understand keywords.  The output can be either easy to understand and
 debug System Verilog, or, using sv2v, somewhat more difficult to
 understand Verilog.
 
-## What Is This Repository?
+## PipeSV Vs sv2v
 
-This repository is a [fork of `sv2v`](https://github.com/zachjs/sv2v)
-System Verilog parser.  PipeSV adds 'Pipeline' and `Stage` nodes to
-the sv2v Abstract Syntax Tree (ASt).  PipeSV also processes those
-nodes to create legal System Verilog, which can then be further
-transformed by sv2v into legal Verilog and fed to the Yosys
-synthesiser.
-
+PipeSV is a [fork of `sv2v`](https://github.com/zachjs/sv2v) System
+Verilog parser.  PipeSV adds 'Pipeline' and `Stage` nodes to the sv2v
+Abstract Syntax Tree (ASt).  PipeSV also processes those nodes to
+create legal System Verilog, which can then be further transformed by
+sv2v into legal Verilog and fed to the Yosys synthesiser.  So PipeSV
+adds two keywords to System Verilog, but it is also able to convert
+System Verilog to Verilog and synthesize with Yosys.
 
 
 `sv2v` converts SystemVerilog ([IEEE 1800-2017]) to
@@ -133,7 +128,7 @@ exact (compatible) versions of the compiler and sv2v's build dependencies.
 You can install the binary to your local bin path (typically `~/.local/bin`) by
 running `stack install`, or copy over the executable manually.
 
-## PipeSV Usage
+## Usage
 
 PipeSV adds a single option to `sv2v`.  The --pipesv option processes
 `pipeline` and `stage` keywords after preprocessing and before converting to Verilog.  From the repository root directory,

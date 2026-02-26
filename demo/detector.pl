@@ -18,7 +18,7 @@ module EdgeDetector (
             counter <= counter + 1;
             pixels <= createEdge(pixels, counter);
         stage #{addNoise}
-            pixels <= noise(pixels);
+            pixels <= addNoise(pixels);
         stage #{delay2_0}
             pixels <= pixels;
         stage #{delay2_1}

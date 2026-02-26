@@ -34,7 +34,7 @@ function automatic PixelArray createEdge(PixelArray pixels, logic [7:0] counter)
     return pixels;
 endfunction
 
-function automatic PixelArray noise(PixelArray pixels);
+function automatic PixelArray addNoise(PixelArray pixels);
     for (int index = 0; index < 5; index++) begin
         logic signed [9:0] noisyRed, noisyGreen, noisyBlue;
 
