@@ -1,21 +1,20 @@
 `default_nettype none
 module EdgeDetector (clock);
 	input logic clock;
-	PixelArray pixels;
 	logic [7:0] counter = 0;
+	PixelArray pixels;
 	initial begin
 		pixels = initializePixels(pixels);
 		end
-	always @(posedge clock)
-		pixels <= incrementPixels(pixels);
+	always @(posedge clock) begin
+		counter <= counter + 1;
+		pixels <= incrementColor(pixels, counter);
+		end
 	// pipeline
 	// stage #{createEdge}
-		logic [7:0] counter_createEdge = 0;
 		PixelArray pixels_createEdge;
-		always @(posedge clock) begin
-			counter_createEdge <= counter + 1;
+		always @(posedge clock)
 			pixels_createEdge <= createEdge(pixels, counter);
-			end
 	// stage #{addNoise}
 		PixelArray pixels_addNoise;
 		always @(posedge clock)
@@ -64,7 +63,7 @@ module EdgeDetector (clock);
 		always @(posedge clock)
 			distanceSquared_distanceSquared <= squaredDistance(delta_delta);
 	// stage #{detector}
-		logic [0:0] result_detector [0:PixelHeight - 1];
+		reg result_detector [0:PixelHeight - 1];
 		always @(posedge clock)
 			begin
 				int ii;
@@ -77,6 +76,6 @@ module EdgeDetector (clock);
 						end
 				end
 	// endpipeline
-	wire resultOut [0:PixelHeight - 1];
-	assign resultOut = result_detector;
+	wire result2 [0:PixelHeight - 1];
+	assign result2 = result_detector;
 endmodule

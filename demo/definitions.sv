@@ -14,25 +14,56 @@ typedef Pixel  PixelArray [PixelHeight];
 
 typedef logic [17:0] DistanceArray [PixelHeight];
 
-function automatic PixelArray incrementPixels(PixelArray pixels);
+function automatic PixelArray incrementColor(PixelArray pixels, logic [7:0] counter);
     for (int index = 0; index < 5; index++) begin
         pixels[index].red   = pixels[index].red   + 1'b1;
-        pixels[index].green = pixels[index].green + 1'b1;
-        pixels[index].blue  = pixels[index].blue  + 1'b1;
+        if (counter == 0)
+             pixels[index].green = pixels[index].green - 1'b1;
+        pixels[index].blue  = pixels[index].blue  - 1'b1;
     end
     return pixels;
 endfunction
 
-function automatic PixelArray createEdge(PixelArray pixels, logic [7:0] counter);
+    
+function automatic PixelArray createEdge(PixelArray pixels, input logic [7:0] counter);
+    logic [7:0] delta;  // Changed from parameter to logic
+    logic [7:0] red;
+    logic [7:0] green;
+    logic [7:0] blue;   
+    
     for (int index = 0; index < 5; index++) begin
-        if (counter > 20) begin
-            pixels[index].red   = pixels[index].red   + 10;
-            pixels[index].green = pixels[index].green + 10;
-            pixels[index].blue  = pixels[index].blue  + 10;
-        end
+        red   = pixels[index].red;
+        green = pixels[index].green;	   
+        blue  = pixels[index].blue;
+        
+        // Set delta based on counter (moved outside pixel assignment)
+        delta = (counter > 120) ? 8'd0 : 8'd40;
+        
+        // Apply changes
+        //if (counter == 8'd128)
+        //    pixels[index].red   =  0;
+        //else 
+        if (counter < 8'd128) 
+             pixels[index].red   =  red + delta;
+        else
+             pixels[index].red   =  red;
+
+        //if (counter == 8'd128) 
+        //    pixels[index].blue   =  0;
+        //else 
+        if (counter < 8'd128) 
+             pixels[index].blue   =  red + delta;
+        else
+             pixels[index].blue   =  red;
+
+        //if (counter == 8'd128) 
+        //    pixels[index].green   =  0;
+        //else
+            pixels[index].green = green;
     end
+    
     return pixels;
-endfunction
+endfunction // createEdge
 
 function automatic PixelArray addNoise(PixelArray pixels);
     for (int index = 0; index < 5; index++) begin

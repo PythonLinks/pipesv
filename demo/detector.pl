@@ -1,21 +1,21 @@
 `default_nettype none
 
 module EdgeDetector (
-    input logic clock//,    output Pixel resultOut
+    input logic clock
 );
-    var PixelArray pixels;
     logic [7:0] counter = 0;
-
+    var PixelArray pixels;
     initial pixels = initializePixels(pixels);
 
-    //Not dependent on the previous stage
-    //So it outside of the pipeline. 
-    always @(posedge clock) 
-       pixels <= incrementPixels(pixels);
+    always @(posedge clock) begin
+        // Incrementing is best done
+        // outside of a pipeline.
+        counter <= counter + 1;
+        pixels <= incrementColor(pixels,counter);
+        end
 
     pipeline
         stage #{createEdge}
-            counter <= counter + 1;
             pixels <= createEdge(pixels, counter);
         stage #{addNoise}
             pixels <= addNoise(pixels);
@@ -45,7 +45,7 @@ module EdgeDetector (
             reg [17:0] distanceSquared[PixelHeight];
             distanceSquared <= squaredDistance(delta);
         stage #{detector}
-            logic [0:0] result [PixelHeight];
+            reg result[PixelHeight];
             always @(posedge clock) begin
                 for (int ii = 0; ii < 5; ii++) begin
                     if (distanceSquared[ii] > 100)
@@ -55,9 +55,8 @@ module EdgeDetector (
                 end
             end
     endpipeline
-    wire resultOut[PixelHeight];
-    // When accessing pipeline variables from outside of the pipeline,
-    // be careful to use the right name. 
-    assign resultOut = result_detector;      
+    wire result2[PixelHeight];
+    // Be careful to use the right name for pipeline variables 
+    assign result2 = result_detector;      
 endmodule
 

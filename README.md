@@ -17,9 +17,11 @@ Here is an example extracted from [the larger edge detector
 source code](./demo/detector.pl).  
 
 ```
+initial pixels = initializePixels(pixels);
 pipeline
+  stage #{increment}
+      pixels <= incrementColor(pixels#{+0});
   stage #{editImage}
-      counter <= counter + 1;
       pixels <= createEdge(pixels, counter);
   stage #{addNoise}
       pixels <= addNoise(pixels);
@@ -35,12 +37,13 @@ pipeline
 endpipeline
 ```
 
-You can also read [the generated System
+PipeSV automatically renames variables to variableName_stageName, and then accesses them using either relative stage names #{-1}, or absolute stage names #{addNoise}. 
+
+For more details, you also read [the generated System
 Verilog](./demo/detector.sv). The PipeSVsource code is more terse and
 readable than traditional System Verilog, so it can be modified
 faster.  The syntax prevents a number of possible inconsistencies with
 indexes in traditionally written code.
-
 
 
 ## Motivation
@@ -57,9 +60,7 @@ deal of complexity to the generated output, making the resulting
 System Verilog harder to read and debug.
 
 PipeSV uses System Verilog as its base language and just adds two very
-easy to learn keywords.  The output can be either easy to understand
-and debug System Verilog, or, using sv2v, somewhat more difficult to
-understand Verilog.
+easy to learn keywords.  The output can remain as readable SystemVerilog, or can be converted to Verilog using sv2v converters..
 
 
 ## Technical Spec
@@ -81,12 +82,31 @@ is much more readable and maintainable than
 
 More importantly the source code can be quickly edited without risk of making an error in the offsets.  
 
+```
+PipeSV Source (*.pl)
+    ↓
+Read File 
+    ↓
+Generate AST 
+    ↓    
+Optional PipeSV Conversion of Pipeline and Stage Keywords
+    ↓    
+SystemVerilog
+    ↓
+Optinal Sv2v Conversion
+    ↓
+Verilog
+    ↓
+Syhthesis
+    ↓
+Place and route
+```
 
 ## PipeSV Vs sv2v
 
 PipeSV is a fork of [the `sv2v`](https://github.com/zachjs/sv2v) System
 Verilog parser.  PipeSV adds `Pipeline` and `Stage` nodes to the sv2v
-Abstract Syntax Tree (ASt).  PipeSV also processes those nodes to
+Abstract Syntax Tree (AST).  PipeSV also processes those nodes to
 create legal System Verilog, which can then be further transformed by
 sv2v into legal Verilog and fed to the Yosys synthesiser.  So PipeSV is also able to convert
 pipelined System Verilog to Verilog and synthesize with Yosys.
@@ -181,7 +201,6 @@ Conversion:
   -p --pipesv               First run the PipeSV processing     
   -E --exclude=CONV         Exclude a particular conversion (Always, Assert,
                             Interface, Logic, SeverityTask, or UnbasedUnsized)
-  -p --pipesv               Process pipelines first. 			    
   -v --verbose              Retain certain conversion artifacts
   -w --write=MODE/FILE/DIR  How to write output; default is 'stdout'; use
                             'adjacent' to create a .v file next to each input;

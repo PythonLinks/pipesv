@@ -1,7 +1,7 @@
-Right hand side variables can be defined which do not actualy exist.
-It should generate an error message.
-Variables defined in a stage should be expanded, the original ignored. 
-
+Pipeline argument should define the sensitivity list.
+Variable Argument should be an integer or name.
+initialize is not properly processing variables. 
+Use variable names defined in the input output interface. 
 
 if a variable and a function share the
   same name in your codebase, we'd skip validating the function reference. But that's a very narrow
