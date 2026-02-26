@@ -36,7 +36,7 @@ endpipeline
 ```
 
 You can also read [the generated System
-Verilog](./demo/detector.sv). The source code is more terse and
+Verilog](./demo/detector.sv). The PipeSVsource code is more terse and
 readable than traditional System Verilog, so it can be modified
 faster.  The syntax prevents a number of possible inconsistencies with
 indexes in traditionally written code.
@@ -141,7 +141,7 @@ running `stack install`, or copy over the executable manually.
 ## Usage
 
 PipeSV adds a single option to `sv2v`.  The --pipesv option processes
-`pipeline` and `stage` keywords after preprocessing and before converting to Verilog.  From the repository root directory,
+`pipeline` and `stage` keywords after preprocessing but before converting to Verilog.  From the repository root directory,
 here is how to use PipeSV on a single file with the output going to stdout.
 
 ```
@@ -150,8 +150,8 @@ bin/sv2v --pipesv --pass-through file.sv    # PipeSV transforms only, show outpu
 bin/sv2v --pipesv file.sv                   # PipeSV transforms + full sv2v Convert
 ```
 
-sv2v takes in a list of files and prints the converted Verilog to `stdout` by
-default. Users should typically pass all of their SystemVerilog source files to
+The default is to display on stdout.
+sv2v users should typically pass all of their SystemVerilog source files to
 sv2v at once so it can properly resolve packages, interfaces, type parameters,
 etc., across files. Using `--write=adjacent` will create a converted `.v` for
 every `.sv` input file rather than printing to `stdout`. `--write`/`-w` can also
