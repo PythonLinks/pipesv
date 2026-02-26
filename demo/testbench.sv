@@ -1,3 +1,4 @@
+`include "define.sv"
 
 module testbench (
     input logic clock
@@ -5,7 +6,7 @@ module testbench (
 
     integer cycle;
 
-    EdgeDetector detectorInstance (
+    PipeLine pipeline (
         .clock(clock)
     );
 
