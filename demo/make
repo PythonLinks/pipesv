@@ -8,6 +8,11 @@ rm -f pipeine.sv
 rm -rf obj_dir
 ../bin/sv2v --pipesv --pass-through pipeline.pl > pipeline.sv
 
+if [ $? -ne 0 ]; then
+    echo "Error: PipeSV Failed."
+    exit 1
+fi
+
 verilator                 \
   --cc                    \
   --exe                   \
@@ -18,6 +23,7 @@ verilator                 \
   --top-module testbench  \
   sim_main.cpp            \
   testbench.sv            \
+  functions.sv            \
   define.sv               \
   pipeline.sv             
 
@@ -32,6 +38,7 @@ verilator                 \
 #  --top-module testbench  # Set the top-level module name to "testbench"\
 #  sim_main.cpp            # C++ main() source file\
 #  testbench.sv            # SystemVerilog testbench \
+#  functions.sv            # Math Functions
 #  define.sv               # Shared definitions/parameters\
 #  pipeline.pl             # Pipeline file
 
