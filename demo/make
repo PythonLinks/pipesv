@@ -2,6 +2,8 @@
 
 rm -f output.vcd
 rm -f output.png
+rm -f image.raw
+
 rm -rf obj_dir
 ../bin/sv2v --pipesv --pass-through detector.pl > detector.sv
 verilator --cc --exe --build --trace --timing -o sim --top-module testbench sim_main.cpp testbench.sv definitions.sv detector.sv

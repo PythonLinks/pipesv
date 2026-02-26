@@ -6,6 +6,12 @@ module EdgeDetector (clock);
 	initial begin
 		pixels = initializePixels(pixels);
 		end
+	integer imageFile;
+	initial begin
+		imageFile = $fopen("image.raw", "wb");
+		end
+	always @(posedge clock)
+		$fwrite(imageFile, "%c%c%c", pixels_createEdge[0].red, pixels_createEdge[0].green, pixels_createEdge[0].blue);
 	always @(posedge clock) begin
 		counter <= counter + 1;
 		pixels <= incrementColor(pixels, counter);

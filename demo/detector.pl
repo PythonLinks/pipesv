@@ -6,7 +6,15 @@ module EdgeDetector (
     logic [7:0] counter = 0;
     var PixelArray pixels;
     initial pixels = initializePixels(pixels);
-
+    integer imageFile;
+    initial imageFile = $fopen("image.raw", "wb");
+        always @(posedge clock)
+            $fwrite(imageFile,
+            "%c%c%c",
+            pixels_createEdge[0].red,
+            pixels_createEdge[0].green,
+            pixels_createEdge[0].blue);
+        
     always @(posedge clock) begin
         // Incrementing is best done
         // outside of a pipeline.

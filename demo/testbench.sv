@@ -2,7 +2,9 @@
 module testbench (
     input logic clock
 );
+
     integer cycle;
+
     EdgeDetector detectorInstance (
         .clock(clock)
     );
