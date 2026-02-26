@@ -4,15 +4,17 @@ module EdgeDetector (
     input logic clock//,    output Pixel resultOut
 );
     var PixelArray pixels;
-    //initial pixels = initializePixels(pixels);
+    logic [7:0] counter = 0;
+
+    initial pixels = initializePixels(pixels);
 
     //Not dependent on the previous stage
+    //So it outside of the pipeline. 
     always @(posedge clock) 
-    pixels <= incrementPixels(pixels);
+       pixels <= incrementPixels(pixels);
 
     pipeline
         stage #{createEdge}
-            logic [7:0] counter = 0;
             counter <= counter + 1;
             pixels <= createEdge(pixels, counter);
         stage #{addNoise}

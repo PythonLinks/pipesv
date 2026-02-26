@@ -1,69 +1,103 @@
-# pipeSV  Pipelined System Verilog
+# Pipelined System Verilog (PipeSV)
 
 Pipelines are very important in digital circuit design, but they are
 not directly supported by System Verilog; there are no `stage` nor
-`pipeline` keywords. PipeSV adds the `stage` and `pipeline` keywords,
-with arguments, to System Verilog.  This is a powerful abstraction,
-but the resulting System Verilog code will be easy to
-understand. PipeSV is a small modification to the mature, and well
-tested `sv2v` Haskell application described below.  So it will also be
-possible to generate Verilog, and synthesize with Yosys.
+`pipeline` keywords.  PipeSV is a preprocessor which adds the `stage`
+and `pipeline` keywords, to System Verilog. Here is an example
+extracted from [the larger edge detector demo](./demo/detector.pl).
+```
+- Feb 26, 2025 This is the first release, use at your own risk.
+- It works, but it is being polished up. 
+- By next week it should be quite good.
+- Within two weeks the next release will allow one 
+- process an image through a video pipeline and redisplay it.
+```
 
-This [pipeline
-abstraction](https://docs.spade-lang.org/pipelines.html) comes from
-the Spade HDL. SpinalHDL also has great pipeline abstractions.
-Initially the keyword `stage` is being implemented, with arguments
-`stage(1)` or `stage(decode)`.  Within stages the register names can
-be the same, the PipeSV transpiler makes small changes to the output
-Verilog or System Verilog so that the circuits can be synthesized.
-Later the `pipeline(n)` keyword will be added, where `n` refers to the
-number of stages, allowing multiple pipelines to cooperate with error
-checking on the delays.
+```
+pipeline(PositiveEdge)
+  stage #{editImage}
+      counter <= counter + 1;
+      pixels <= createEdge(pixels, counter);
+  stage #{addNoise}
+      pixels <= noise(pixels);
+  stage #{firstDelay}
+      pixels <= pixels;
+  stage #{secondDelay}
+      pixels <= pixels;    
+  stage #{averagePixels}
+      var PixelArray average2 ;
+      average2  <= average(pixels#{-2}, pixels#{-1});
+  stage #{thirdDelay}
+      average2 <= average2;
+endpipeline
+```
 
-Why is this approach being taken?  Most of the HDL's based on verious
+The source code is much more terse and readable than traditional
+System Verilog, so it can be modified faster.  The syntax prevents a
+number of possible inconsistencies in traditional code.
+
+There are a number of hardware definition languages (HDLs), but in the
+author's experience, they are either hard to learn, or add a great
+deal of complexity to the resulting verilog, making the resulting
+System Verilog harder to read and debug. PipeSV generates very
+readable SystemVerilog, which is easy to debug with traditional tools.
+
+PipeSV is a small modification to the mature, and well tested "[System
+Verilog to Verilog](https://github.com/zachjs/sv2v)" (sv2v) Haskell
+application described below.  So PipeSV is also able to convert
+System Verilog to Verilog and synthesize with Yosys.
+
+The [inspiration for this pipeline
+abstraction](https://docs.spade-lang.org/pipelines.html) comes from the
+Spade HDL. SpinalHDL also has great pipeline abstractions.
+
+PipeSV adds the keywords `pipeline#{stageName}` ... `endpipeline`. Within
+a pipeline are stages.  Within stages you can include declarations,
+statements and blocks. The stage provides a default `always @(posedge
+clock)` to any dangling statements that need it, but one can also add always
+blocks with custom sensitivity lists.  Multiple stages can have a
+`reg`, `wire`, or `logic` variable with the same name, the transpiler appends the stage
+name to each one to prevent clashes.  The resulting verilog:
+
+```pixels_addNoise <= addNoise(pixels_input);```
+is much more readable and maintainable than 
+```pixels[1] <= addNoise(pixels[0]);```
+More importantly the source code can be quickly edited without risk of making an error in the offsets.  
+
+Why is this approach being taken?  Most of the HDLs based on various
 programming languages such as Python, Rust, Haskell and others
 generate incomprehensible SystemVerilog or Verilog.  This approach
 uses System Verilog as its key language and just adds two very easy to
-understand key words.  The output can be either easy to understand and
+understand keywords.  The output can be either easy to understand and
 debug System Verilog, or, using sv2v, somewhat more difficult to
 understand Verilog.
 
-What is `sv2v`? ``sv2v` converts SystemVerilog ([IEEE 1800-2017]) to
+## What Is This Repository?
+
+This repository is a [fork of `sv2v`](https://github.com/zachjs/sv2v)
+System Verilog parser.  PipeSV adds 'Pipeline' and `Stage` nodes to
+the sv2v Abstract Syntax Tree (ASt).  PipeSV also processes those
+nodes to create legal System Verilog, which can then be further
+transformed by sv2v into legal Verilog and fed to the Yosys
+synthesiser.
+
+
+
+`sv2v` converts SystemVerilog ([IEEE 1800-2017]) to
 Verilog ([IEEE 1364-2005]), with a focus on the [extended version of
 Verilog](https://yosyshq.readthedocs.io/projects/yosys/en/latest/using_yosys/verilog.html#supported-features-from-systemverilog)
 supported by the open source [Yosys synthesis
 suite](https://yosyshq.net/yosys/).  `sv2v` has an active user base
 among those wishing to synthesize SystemVerilog with Yosys.  `sv2v`
 has an extensive test suite, over 1000 files, meaning that it is very
-mature software.  PipeSV will be a comparitively small modification to
-`sv2v`. (Hopefully) There is also a C++ System Verilog to Verilog
-converter, but Haskell will hopefully be a more productive
-environment.  So far Haskell looks really promising and quite fast. 
-
-[IEEE 1800-2017]: https://ieeexplore.ieee.org/servlet/opac?punumber=8299593
-[IEEE 1364-2005]: https://ieeexplore.ieee.org/servlet/opac?punumber=10779
-
-The primary goal of this project is to create a completely free and open-source
-tool for converting SystemVerilog to Verilog. While methods for performing this
-conversion already exist, they generally either rely on commercial tools, or are
-limited in scope.
-
-
-[SystemVerilog features that Yosys supports]: 
-
-The idea for this project was shared with me while I was an undergraduate at
-Carnegie Mellon University as part of a joint Computer Science and Electrical
-and Computer Engineering research project on open hardware under Professors [Ken
-Mai] and [Dave Eckhardt]. I have greatly enjoyed collaborating with the team at
-CMU since January 2019, even after my graduation the following May.
-
-[Ken Mai]: https://engineering.cmu.edu/directory/bios/mai-kenneth.html
-[Dave Eckhardt]: https://www.cs.cmu.edu/~davide/
+mature software.  While there is a C++ System Verilog to Verilog
+converter, the Haskell transpiler runs quite fast (0.1 seconds), and
+is a more productive development environment.
 
 
 ## Dependencies
 
-All of sv2v's dependencies are free and open-source.
+All of PipeSV's dependencies are free and open-source.
 
 * Build Dependencies
     * [Haskell Stack](https://www.haskellstack.org/) - Haskell build system
@@ -77,14 +111,6 @@ All of sv2v's dependencies are free and open-source.
 
 ## Installation
 
-### Pre-built binaries
-
-Binaries for Ubuntu, macOS, and Windows are available on the [releases page]. If
-your system is not covered, or you would like to build the latest commit, simple
-instructions for building from source are below.
-
-[releases page]: https://github.com/zachjs/sv2v/releases
-
 ### Building from source
 
 You must have [Stack] installed to build sv2v. Then you can:
@@ -92,8 +118,8 @@ You must have [Stack] installed to build sv2v. Then you can:
 [Stack]: https://www.haskellstack.org/
 
 ```
-git clone https://github.com/zachjs/sv2v.git
-cd sv2v
+git clone https://github.com/PythonLinks/pipesv.git
+cd pipesv
 make
 ```
 
@@ -103,20 +129,17 @@ exact (compatible) versions of the compiler and sv2v's build dependencies.
 You can install the binary to your local bin path (typically `~/.local/bin`) by
 running `stack install`, or copy over the executable manually.
 
-## PipesSV Usage
+## PipeSV Usage
 
-PipeSV adds a single option to sv2v.  The --pipesv processes `pipeline` and `stage` keywords.
-PipeSV operates on a single file.  You may then add the output to a multi-file sv2v process.
-Here is how they would normally be used.
+PipeSV adds a single option to `sv2v`.  The --pipesv option processes
+`pipeline` and `stage` keywords after preprocessing and before converting to Verilog.  From the repository root directory,
+ere is how to use PipeSV on a single file with the output going to stdout.
 
 ```
-pipesv/bin/sv2v --pipesv --pass-through file.sv   # PipeSV transforms only, inspect output
-pipesv/bin/sv2v --pipesv file.sv                   # PipeSV transforms + full sv2v Convert
-pipesv/bin/sv2v --pass-through file.sv             # Parse and dump, no transforms
-pipesv/bin/sv2v file.sv                            # Full sv2v Convert, no PipeSV
+bin/sv2v --pass-through file.sv             # Parse and dump, no transforms
+bin/sv2v --pipesv --pass-through file.sv    # PipeSV transforms only, show output
+bin/sv2v --pipesv file.sv                   # PipeSV transforms + full sv2v Convert
 ```
-
-## sv2vUsage
 
 sv2v takes in a list of files and prints the converted Verilog to `stdout` by
 default. Users should typically pass all of their SystemVerilog source files to
@@ -146,6 +169,7 @@ Preprocessing:
      --skip-preprocessor    Disable preprocessing of macros, comments, etc.
 Conversion:
      --pass-through         Dump input without converting
+  -p --pipesv               First run the PipeSV processing     
   -E --exclude=CONV         Exclude a particular conversion (Always, Assert,
                             Interface, Logic, SeverityTask, or UnbasedUnsized)
   -p --pipesv               Process pipelines first. 			    
@@ -170,31 +194,6 @@ Other:
      --numeric-version      Print just the version number
 ```
 
-
-## Supported Features
-
-sv2v supports most synthesizable SystemVerilog features. Current notable
-exceptions include `defparam` on interface instances, certain synthesizable
-usages of parameterized classes, and the `bind` keyword. Assertions are also
-supported, but are simply dropped during conversion.
-
-If you find a bug or have a feature request, please [create an issue].
-Preference will be given to issues that include examples or test cases.
-
-[create an issue]: https://github.com/zachjs/sv2v/issues/new
-
-
-## SystemVerilog Front End
-
-This project contains a preprocessor, lexer, and parser, and an abstract syntax
-tree representation for a subset of the SystemVerilog specification. The parser
-is not very strict. The AST allows for the representation of syntactically (and
-semantically) invalid Verilog. The goal is to be more general in the
-representation to enable more standardized and straightforward conversion
-procedures. This could be extended into an independent and more fully-featured
-front end if there is significant interest.
-
-
 ## Testing
 
 Once the [test dependencies] are installed, tests can be run with `make test`.
@@ -211,21 +210,3 @@ has been a valuable asset in finding edge cases.
 
 [SystemVerilog compliance suite]: https://github.com/chipsalliance/sv-tests
 
-
-## Acknowledgements
-
-This project was originally forked from [Tom Hawkin's Verilog parser]. While the
-front end has changed substantially to support the larger SystemVerilog
-standard, his project was a great starting point.
-
-[Tom Hawkin's Verilog parser]: https://github.com/tomahawkins/verilog
-
-Reid Long was invaluable in developing this tool, providing significant tests
-and advice, and isolating many bugs.
-
-Edric Kusuma helped me with the ins and outs of SystemVerilog, with which I had
-no prior experience, and has also helped with test cases.
-
-Since sv2v's public release, many people have taken the time to file detailed
-bug reports and feature requests. I greatly appreciate their help in furthering
-the project.
