@@ -9,16 +9,15 @@ and `pipeline` keywords, to System Verilog.
 - Feb 26, 2025 This is the first release, use at your own risk.
 - It works, but it is still being polished up. 
 - By next week it should be quite good.
-- Within two weeks the next release will enable one 
+- Within two weeks the next release will enable one to 
 - process an image through a video pipeline and redisplay it.
 ```
 
 Here is an example extracted from [the larger edge detector
-demo](./demo/detector.pl).  You can read [the generated
-Verilog](./demo/detector.sv).
+source code](./demo/detector.pl).  You can alsoread [the generated System Verilog](./demo/detector.sv).
 
 ```
-pipeline(PositiveEdge)
+pipeline
   stage #{editImage}
       counter <= counter + 1;
       pixels <= createEdge(pixels, counter);
@@ -40,17 +39,31 @@ The source code is much more terse and readable than traditional
 System Verilog, so it can be modified faster.  The syntax prevents a
 number of possible inconsistencies in traditional code.
 
-There are a number of hardware definition languages (HDLs), but in the
-author's experience, they are either hard to learn, or add a great
-deal of complexity to the resulting verilog, making the resulting
-System Verilog harder to read and debug. PipeSV generates very
-readable SystemVerilog, which is easy to debug with traditional tools.
+
+
+## Motivation
 
 The [inspiration for this pipeline
 abstraction](https://docs.spade-lang.org/pipelines.html) comes from the
 Spade HDL. SpinalHDL also has great pipeline abstractions.
 
-PipeSV adds the keywords `pipeline#{stageName}` ... `endpipeline`. Within
+
+
+There are a number of hardware definition languages (HDLs), but in the
+author's experience, they are either hard to learn, or add a great
+deal of complexity to the resulting verilog, making the resulting
+System Verilog harder to read and debug.
+
+PipeSV uses System Verilog as its base language and just adds two very
+easy to learn keywords.  The output can be either easy to understand
+and debug System Verilog, or, using sv2v, somewhat more difficult to
+understand Verilog.
+
+
+## Technical Spec
+
+PipeSV adds the keywords `pipeline` ,
+`stage #{stageName}`, `endstage`, and `endpipeline` to System Verilog. Within
 a pipeline are stages.  Within stages you can include declarations,
 statements and blocks. The stage provides a default `always @(posedge
 clock)` to any dangling statements that need it, but one can also add always
@@ -66,13 +79,6 @@ is much more readable and maintainable than
 
 More importantly the source code can be quickly edited without risk of making an error in the offsets.  
 
-Why is this approach being taken?  Most of the HDLs based on various
-programming languages such as Python, Rust, Haskell and others
-generate incomprehensible SystemVerilog or Verilog.  This approach
-uses System Verilog as its key language and just adds two very easy to
-understand keywords.  The output can be either easy to understand and
-debug System Verilog, or, using sv2v, somewhat more difficult to
-understand Verilog.
 
 ## PipeSV Vs sv2v
 
