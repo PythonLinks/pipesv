@@ -3,15 +3,11 @@
 //`include "define.sv"    
 
 module PipeLine (
-    input logic clock
+    input logic clock,
+    input Pixel pixel,
+    output wire result
 );
 
-
-    always @(posedge clock) begin
-        // Incrementing is best done
-        // outside of a pipeline.
-
-        end
     integer imageFile;
     initial imageFile = $fopen("image.raw", "wb");
             always @(posedge clock)
@@ -59,16 +55,15 @@ module PipeLine (
             distanceSquared <= squaredDistance(delta);
         stage #{detector}
             int ii;
-            reg result[PipelineHeight];
+            logic conclusion[4:0]; 
                 for (ii = 0; ii < 5; ii++) begin
                     if (distanceSquared[ii] > 100)
-                        result[ii] <= 1'b1;
+                        conclusion[ii] <= 1'b1;
                     else
-                        result[ii] <= 1'b0;
+                        conclusion[ii] <= 1'b0;
             end
     endpipeline
-    wire result2[PipelineHeight];
     // Be careful to use the right name for pipeline variables 
-    assign result2 = result_detector;      
+    assign result = conclusion_detector[0];      
 endmodule
 

@@ -7,6 +7,7 @@ import System.Exit (exitFailure)
 import System.IO (hPutStrLn, stderr)
 
 import Language.SystemVerilog.AST
+import PipeSV.StageContext (StageContext, fileName)
 
 -- -------------------------------------------------------
 -- Types
@@ -15,6 +16,8 @@ import Language.SystemVerilog.AST
 -- | Location where a variable was declared — used in error messages.
 data Location
     = ModuleScope
+    | InputPortScope
+    | OutputPortScope
     | StageScope Identifier
 
 type SymbolTable = Map.Map Identifier (Type, Location, Expr)
@@ -206,17 +209,26 @@ renameLocalDecl _ item = item
 -- Symbol table initialization
 -- -------------------------------------------------------
 
+-- | Maps a declaration direction to its symbol table location.
+-- Input ports use InputPortScope; output and inout ports use OutputPortScope;
+-- non-port declarations (local) use ModuleScope.
+locationFor :: Direction -> Location
+locationFor Local  = ModuleScope
+locationFor Input  = InputPortScope
+locationFor Output = OutputPortScope
+locationFor Inout  = OutputPortScope
+
 -- | Builds the initial symbol table from module-scope declarations.
 -- Stage items are ignored — they are added later by processStage.
 initSymbolTable :: [ModuleItem] -> SymbolTable
 initSymbolTable items = Map.fromList $ concatMap extractDecl items
   where
 
-    extractDecl (MIPackageItem (Decl (Variable _ declType name _ initializer))) =
-        [(name, (declType, ModuleScope, initializer))]
+    extractDecl (MIPackageItem (Decl (Variable direction declType name _ initializer))) =
+        [(name, (declType, locationFor direction, initializer))]
 
-    extractDecl (MIPackageItem (Decl (Net _ _ _ declType name _ initializer))) =
-        [(name, (declType, ModuleScope, initializer))]
+    extractDecl (MIPackageItem (Decl (Net direction _ _ declType name _ initializer))) =
+        [(name, (declType, locationFor direction, initializer))]
 
     extractDecl _ = []
 
@@ -229,8 +241,8 @@ initSymbolTable items = Map.fromList $ concatMap extractDecl items
 -- to those names throughout the stage's statements and always blocks, and
 -- generates pipeline register declarations (name_stageName = 0) for each
 -- module-scope variable assigned in the stage.
-processStage :: SymbolTable -> String -> [ModuleItem] -> IO ([ModuleItem], SymbolTable)
-processStage symbolTable stageName items = do
+processStage :: StageContext -> SymbolTable -> String -> [ModuleItem] -> IO ([ModuleItem], SymbolTable)
+processStage context symbolTable stageName items = do
 
     -- Step 1: Add stage-local declarations to the symbol table,
     -- checking for duplicates, and collect their names.
@@ -287,12 +299,17 @@ processStage symbolTable stageName items = do
 
     checkDuplicate table name =
         case Map.lookup name table of
+            Just (_, InputPortScope, _) -> return ()
+            Just (_, OutputPortScope, _) -> do
+                hPutStrLn stderr $ "Error in file " ++ fileName context ++ " in the function GenerateVariables.processStage: "
+                    ++ "variable '" ++ name ++ "' already declared as an output port"
+                exitFailure
             Just (_, ModuleScope, _) -> do
-                hPutStrLn stderr $ "Error in GenerateVariables.processStage: "
+                hPutStrLn stderr $ "Error in file " ++ fileName context ++ " in the function GenerateVariables.processStage: "
                     ++ "variable '" ++ name ++ "' already declared at module scope"
                 exitFailure
             Just (_, StageScope existingStageName, _) -> do
-                hPutStrLn stderr $ "Error in GenerateVariables.processStage: "
+                hPutStrLn stderr $ "Error in file " ++ fileName context ++ " in the function GenerateVariables.processStage: "
                     ++ "variable '" ++ name ++ "' already declared in stage '"
                     ++ existingStageName ++ "'"
                 exitFailure
@@ -301,9 +318,16 @@ processStage symbolTable stageName items = do
     checkAssignedName table name =
         case Map.lookup name table of
             Nothing -> do
-                hPutStrLn stderr $ "Error in GenerateVariables.processStage: "
+                hPutStrLn stderr $ "Error in file " ++ fileName context ++ " in the function GenerateVariables.processStage: "
                     ++ "assignment to undeclared variable '" ++ name
                     ++ "' in stage '" ++ stageName ++ "'"
+                exitFailure
+            Just (_, OutputPortScope, _) -> do
+                hPutStrLn stderr $ "Error in file " ++ fileName context ++ " in the function GenerateVariables.processStage: "
+                    ++ "cannot assign to output port '" ++ name
+                    ++ "' in stage '" ++ stageName ++ "'. "
+                    ++ "Instead please assign values to output ports after "
+                    ++ "the end of the pipeline. It is conceptually cleaner that way."
                 exitFailure
             Just _ -> return name
 
@@ -313,7 +337,7 @@ processStage symbolTable stageName items = do
                 MIPackageItem (Decl (Variable Local declType
                     (name ++ "_" ++ stageName) [] initializer))
             Nothing ->
-                error "GenerateVariables.buildRegisterDecl: name not in table"
+                error $ "GenerateVariables.buildRegisterDecl: '" ++ name ++ "' not in table"
 
 -- -------------------------------------------------------
 -- Top-level entry point
@@ -322,8 +346,8 @@ processStage symbolTable stageName items = do
 -- | Processes all stages in a module's item list, threading the symbol
 -- table through in order so each stage sees declarations from all
 -- previous stages.
-generateVariables :: [ModuleItem] -> IO [ModuleItem]
-generateVariables items = do
+generateVariables :: StageContext -> [ModuleItem] -> IO [ModuleItem]
+generateVariables context items = do
 
     -- Initialize symbol table from module-scope declarations.
     let symbolTable = initSymbolTable items
@@ -335,7 +359,7 @@ generateVariables items = do
   where
 
     processItem (table, accumulated) (StageC kw (Stage name stageItems)) = do
-        (expanded, table') <- processStage table name stageItems
+        (expanded, table') <- processStage context table name stageItems
         return (table', StageC kw (Stage name expanded) : accumulated)
 
     processItem (table, accumulated) item =

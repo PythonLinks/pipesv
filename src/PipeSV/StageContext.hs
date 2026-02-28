@@ -7,7 +7,8 @@ import Language.SystemVerilog.AST
 
 -- | Context passed down through the AST traversal.
 data StageContext = StageContext
-    { contextStageNames  :: [String]
+    { fileName           :: FilePath
+    , contextStageNames  :: [String]
     , nameToIndex        :: Map.Map String Int
     , contextIndex       :: Maybe Int
     , contextLocalDecls  :: Set.Set String
@@ -17,7 +18,7 @@ data StageContext = StageContext
 
 -- | Initial context with no stages, no current index, and no local declarations.
 emptyContext :: StageContext
-emptyContext = StageContext [] Map.empty Nothing Set.empty Set.empty
+emptyContext = StageContext "" [] Map.empty Nothing Set.empty Set.empty
                  (EventExpr (EventExprEdge Posedge (Ident "clock")))
 
 -- -------------------------------------------------------

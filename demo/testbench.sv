@@ -5,9 +5,13 @@ module testbench (
 );
 
     integer cycle;
-
+    Pixel pixel;
+   wire  result;
+ 
     PipeLine pipeline (
-        .clock(clock)
+        .clock(clock),
+        .pixel(pixel),		        
+        .result(result)		       
     );
 
 initial begin

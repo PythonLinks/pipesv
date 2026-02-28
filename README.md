@@ -6,8 +6,10 @@ not directly supported by System Verilog; there are no `stage` nor
 and `pipeline` keywords, to System Verilog. 
 
 ```diff
-- Feb 26, 2025 This is the first release, use at your own risk.
-- It works, but it is still being polished up. 
+- Feb 28, 2025 This is the first release, use at your own risk.
+- It works, the functionality is getting quite mature
+- but it is still being polished up. Meaning that the
+- error messages are getting improved, and testing is being done. 
 - By next week it should be quite good.
 - Within two weeks the next release will enable one to 
 - process an image through a video pipeline and redisplay it.

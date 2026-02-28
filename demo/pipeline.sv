@@ -1,8 +1,12 @@
 `default_nettype none
-module PipeLine (clock);
+module PipeLine (
+	clock,
+	pixel,
+	result
+);
 	input logic clock;
-	always @(posedge clock) begin
-		end
+	input Pixel pixel;
+	output wire result;
 	integer imageFile;
 	initial begin
 		imageFile = $fopen("image.raw", "wb");
@@ -73,16 +77,15 @@ module PipeLine (clock);
 			distanceSquared_distanceSquared <= squaredDistance(delta_delta);
 	// stage #{detector}
 		int ii_detector;
-		reg result_detector [0:PipelineHeight - 1];
+		logic conclusion_detector [4:0];
 		always @(posedge clock)
 			for (ii_detector = 0; ii_detector < 5; ii_detector += 1)
 			begin
 				if (distanceSquared_distanceSquared[ii_detector] > 100)
-					result_detector[ii_detector] <= 1'b1;
+					conclusion_detector[ii_detector] <= 1'b1;
 				else
-					result_detector[ii_detector] <= 1'b0;
+					conclusion_detector[ii_detector] <= 1'b0;
 				end
 	// endpipeline
-	wire result2 [0:PipelineHeight - 1];
-	assign result2 = result_detector;
+	assign result = conclusion_detector[0];
 endmodule

@@ -11,18 +11,19 @@ import PipeSV.NameResolution
 import PipeSV.GenerateVariables (generateVariables)
 
 -- | Top-level entry point. Rewrites all stage expressions in an AST.
-rewriteAST :: AST -> IO AST
-rewriteAST ast = do
-    ast' <- mapM applyGenerateVariables ast
-    mapM (editAST emptyContext) ast'
+rewriteAST :: FilePath -> AST -> IO AST
+rewriteAST sourceFile ast = do
+    let context = emptyContext { fileName = sourceFile }
+    ast' <- mapM (applyGenerateVariables context) ast
+    mapM (editAST context) ast'
 
 -- | Applies generateVariables to the items of a module Part.
 -- All other Description variants pass through unchanged.
-applyGenerateVariables :: Description -> IO Description
-applyGenerateVariables (Part attrs b kw lt name ports items) = do
-    items' <- generateVariables items
+applyGenerateVariables :: StageContext -> Description -> IO Description
+applyGenerateVariables context (Part attrs b kw lt name ports items) = do
+    items' <- generateVariables context items
     return (Part attrs b kw lt name ports items')
-applyGenerateVariables description = return description
+applyGenerateVariables _ description = return description
 
 -- -------------------------------------------------------
 -- EditAST: rewrites stage expressions using the context
@@ -162,7 +163,9 @@ instance EditAST Expr where
     editAST context (StageExpr se) =
         case contextIndex context of
             Nothing -> do
-                hPutStrLn stderr "Error: stage expression appears outside of a stage"
+                hPutStrLn stderr $ "Error in file " ++ fileName context
+                    ++ " in the function EditAst.editAST: stage expression '"
+                    ++ show (StageExpr se) ++ "' appears outside of a stage"
                 exitFailure
             Just currentStageIndex -> editStageExpr context currentStageIndex se
 
