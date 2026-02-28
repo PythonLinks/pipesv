@@ -250,11 +250,11 @@ expandStage context stage = do
     let (statementItems, declarations) = partition isStatement rewrittenItems
     let stmts = [stmt | Statement stmt <- statementItems]
 
-    -- d. Wrap statements in always @(posedge clock) begin...end
-    let clockEvent  = Event (EventExpr (EventExprEdge Posedge (Ident "clock")))
+    -- d. Wrap statements in always @(...) begin...end
     let alwaysItems = if null stmts
                         then []
-                        else [AlwaysC Always (Timing clockEvent (Block Seq "" [] stmts))]
+                        else [AlwaysC Always (Timing (Event (contextSensitivity context'))
+                                                     (Block Seq "" [] stmts))]
     return (declarations ++ alwaysItems)
 
 isStatement :: ModuleItem -> Bool

@@ -21,7 +21,7 @@ module PipeLine (
                 pixels_createEdge[0].green,
                 pixels_createEdge[0].blue);
 
-    pipeline
+    pipeline @(posedge clock)
         stage #{init}
             logic [7:0] counter = 0;
             var PixelArray pixels;

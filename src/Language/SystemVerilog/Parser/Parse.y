@@ -1150,7 +1150,7 @@ StageDeclaration :: { [ModuleItem] }
                     { [StageC $1 (Stage $3 $5), EndStageC] }
 
 PipelineKW :: { PipelineKW }
-  : "pipeline" { PipelineKW }
+  : "pipeline" EventControl { PipelineKW $2 }
 
 PipelineStages :: { [ModuleItem] }
   : {- empty -}                       { [] }

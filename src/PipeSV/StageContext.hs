@@ -7,16 +7,18 @@ import Language.SystemVerilog.AST
 
 -- | Context passed down through the AST traversal.
 data StageContext = StageContext
-    { contextStageNames :: [String]
-    , nameToIndex       :: Map.Map String Int
-    , contextIndex      :: Maybe Int
-    , contextLocalDecls :: Set.Set String
-    , validRHSNames     :: Set.Set String
+    { contextStageNames  :: [String]
+    , nameToIndex        :: Map.Map String Int
+    , contextIndex       :: Maybe Int
+    , contextLocalDecls  :: Set.Set String
+    , validRHSNames      :: Set.Set String
+    , contextSensitivity :: Event
     }
 
 -- | Initial context with no stages, no current index, and no local declarations.
 emptyContext :: StageContext
 emptyContext = StageContext [] Map.empty Nothing Set.empty Set.empty
+                 (EventExpr (EventExprEdge Posedge (Ident "clock")))
 
 -- -------------------------------------------------------
 -- CalculateContext: enriches context as we descend the AST
@@ -27,13 +29,21 @@ class CalculateContext a where
     calculateContext :: StageContext -> a -> StageContext
 
 -- | When entering a module, collects stage names in order, builds the
--- name-to-index map, and collects all declared names for RHS validation.
+-- name-to-index map, collects all declared names for RHS validation,
+-- and extracts the sensitivity event from the pipeline keyword.
 instance CalculateContext Description where
     calculateContext context (Part _ _ Module _ _ _ items) =
-        let names      = [n | StageC _ (Stage n _) <- items]
-            index      = Map.fromList $ zip names [0..]
-            validNames = collectDeclaredNames items
-        in context { contextStageNames = names, nameToIndex = index, validRHSNames = validNames }
+        let names       = [n | StageC _ (Stage n _) <- items]
+            index       = Map.fromList $ zip names [0..]
+            validNames  = collectDeclaredNames items
+            sensitivity = case [ev | PipelineC (PipelineKW ev) <- items] of
+                              (ev : _) -> ev
+                              []       -> contextSensitivity context
+        in context { contextStageNames  = names
+                   , nameToIndex        = index
+                   , validRHSNames      = validNames
+                   , contextSensitivity = sensitivity
+                   }
     calculateContext context _ = context
 
 -- | When entering a stage, records the stage's index and the set of locally

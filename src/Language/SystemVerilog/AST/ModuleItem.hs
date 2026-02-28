@@ -30,7 +30,7 @@ import Language.SystemVerilog.AST.Description (PackageItem)
 import Language.SystemVerilog.AST.Expr (Expr(Nil), pattern Ident, Range, showRanges, ParamBinding, showParams, Args(Args))
 import Language.SystemVerilog.AST.GenItem (GenItem)
 import Language.SystemVerilog.AST.LHS (LHS)
-import Language.SystemVerilog.AST.Stmt (Stmt, Assertion, Severity, Timing(Delay), PropertySpec, SeqExpr, showAlwaysBody)
+import Language.SystemVerilog.AST.Stmt (Stmt, Assertion, Event, Severity, Timing(Delay), PropertySpec, SeqExpr, showAlwaysBody)
 import Language.SystemVerilog.AST.Type (Identifier, Strength0, Strength1)
 
 data ModuleItem
@@ -115,7 +115,7 @@ type ModportDecl = (Direction, Identifier, Expr)
 data StageKW = StageKW
      deriving Eq
 
-data PipelineKW = PipelineKW
+data PipelineKW = PipelineKW Event
      deriving Eq
 
 data Stage = Stage String [ModuleItem]
@@ -129,7 +129,7 @@ instance Show StageKW where
     show StageKW = "// stage"
 
 instance Show PipelineKW where
-    show PipelineKW = "// pipeline"
+    show (PipelineKW ev) = "// pipeline @(" ++ show ev ++ ")"
 
 
 data AlwaysKW

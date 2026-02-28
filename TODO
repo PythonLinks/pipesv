@@ -1,17 +1,4 @@
-We need a typeclass for conversions.
-It converts left hand side arguments
-Declarations
-right hand side arguments
-
-
-Does not correctly process arguments in gen blocks
 Does not correctly process arguments in module declarations. 
-Put the sensitivity list in the pipeline statement. 
-
-Pipeline argument should define the sensitivity list.
-Variable Argument should be an integer or name.
-initialize is not properly processing variables. 
-Use variable names defined in the input output interface. 
 
 if a variable and a function share the
   same name in your codebase, we'd skip validating the function reference. But that's a very narrow
@@ -25,7 +12,6 @@ Flow: valid+data
 Stream: valid+ready+data
 
 
-I think I need pipeline and end pipelinekeywords
 pipeline(Registers)
 pipeline(Flow)
 pipeline(Stream) 

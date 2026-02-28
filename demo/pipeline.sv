@@ -9,7 +9,7 @@ module PipeLine (clock);
 		end
 	always @(posedge clock)
 		$fwrite(imageFile, "%c%c%c", pixels_createEdge[0].red, pixels_createEdge[0].green, pixels_createEdge[0].blue);
-	// pipeline
+	// pipeline @(posedge clock)
 	// stage #{init}
 		logic [7:0] counter_init = 0;
 		PixelArray pixels_init;

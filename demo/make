@@ -1,5 +1,15 @@
 #!/bin/bash
 
+if ! command -v verilator &> /dev/null; then
+    echo "Error: verilator is not installed or not on PATH."
+    exit 1
+fi
+
+if ! command -v ffmpeg &> /dev/null; then
+    echo "Error: ffmpeg is not installed or not on PATH."
+    exit 1
+fi
+
 rm -f output.vcd
 rm -f output.png
 rm -f image.raw
