@@ -1,14 +1,7 @@
 `default_nettype none
 module PipeLine (clock);
 	input logic clock;
-	logic [7:0] counter = 0;
-	PixelArray pixels;
-	initial begin
-		pixels = initializePixels(pixels);
-		end
 	always @(posedge clock) begin
-		counter <= counter + 1;
-		pixels <= incrementColor(pixels, counter);
 		end
 	integer imageFile;
 	initial begin
@@ -17,10 +10,20 @@ module PipeLine (clock);
 	always @(posedge clock)
 		$fwrite(imageFile, "%c%c%c", pixels_createEdge[0].red, pixels_createEdge[0].green, pixels_createEdge[0].blue);
 	// pipeline
+	// stage #{init}
+		logic [7:0] counter_init = 0;
+		PixelArray pixels_init;
+		initial begin
+			pixels_init = initializePixels(pixels_init);
+			end
+		always @(posedge clock) begin
+			counter_init <= counter_init + 1;
+			pixels_init <= incrementColor(pixels_init, counter_init);
+			end
 	// stage #{createEdge}
 		PixelArray pixels_createEdge;
 		always @(posedge clock)
-			pixels_createEdge <= createEdge(pixels, counter);
+			pixels_createEdge <= createEdge(pixels_init, counter_init);
 	// stage #{addNoise}
 		PixelArray pixels_addNoise;
 		always @(posedge clock)
@@ -69,17 +72,15 @@ module PipeLine (clock);
 		always @(posedge clock)
 			distanceSquared_distanceSquared <= squaredDistance(delta_delta);
 	// stage #{detector}
+		int ii_detector;
 		reg result_detector [0:PipelineHeight - 1];
 		always @(posedge clock)
+			for (ii_detector = 0; ii_detector < 5; ii_detector += 1)
 			begin
-				int ii;
-				for (ii = 0; ii < 5; ii += 1)
-					begin
-						if (distanceSquared_distanceSquared[ii] > 100)
-							result_detector[ii] <= 1'b1;
-						else
-							result_detector[ii] <= 1'b0;
-						end
+				if (distanceSquared_distanceSquared[ii_detector] > 100)
+					result_detector[ii_detector] <= 1'b1;
+				else
+					result_detector[ii_detector] <= 1'b0;
 				end
 	// endpipeline
 	wire result2 [0:PipelineHeight - 1];

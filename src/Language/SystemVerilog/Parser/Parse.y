@@ -758,7 +758,6 @@ StageItems :: { [ModuleItem] }
 StageItem :: { [ModuleItem] }
   : NonGenerateStageItem { $1 }
   | ConditionalGenerateConstruct    { [Generate [$1]] }
-  | LoopGenerateConstruct           { [Generate [$1]] }
   | "generate" GenItems endgenerate { [Generate $2] }
 
 NonGenerateModuleItem :: { [ModuleItem] }
@@ -798,6 +797,9 @@ NonGenerateStageItem :: { [ModuleItem] }
   | AssertionItem                        { [AssertionItem $1] }
   | NetTypeP Strength DeclTokens(";")    { map (MIPackageItem . Decl) $ parseDTsAsDecl (uncurry DTNet $1 $2 : $3) }
   | PartialTypeP      DeclTokens(";")    { map (MIPackageItem . Decl) $ parseDTsAsDecl (uncurry DTType $1   : $2) }
+  | StmtBlock(BlockKWSeq, end )          { [Statement $1] }
+  | StmtBlock(BlockKWPar, join)          { [Statement $1] }
+  | "for" "(" ForInit ForCond ForStep ")" Stmt { [Statement $ makeFor $3 $4 $5 $7] }
 
 AssignOption :: { AssignOption }
   : {- empty -}   { AssignOptionNone }

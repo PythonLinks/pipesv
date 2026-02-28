@@ -1,3 +1,13 @@
+We need a typeclass for conversions.
+It converts left hand side arguments
+Declarations
+right hand side arguments
+
+
+Does not correctly process arguments in gen blocks
+Does not correctly process arguments in module declarations. 
+Put the sensitivity list in the pipeline statement. 
+
 Pipeline argument should define the sensitivity list.
 Variable Argument should be an integer or name.
 initialize is not properly processing variables. 

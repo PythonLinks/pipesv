@@ -5,15 +5,12 @@
 module PipeLine (
     input logic clock
 );
-    logic [7:0] counter = 0;
-    var PixelArray pixels;
-    initial pixels = initializePixels(pixels);
+
 
     always @(posedge clock) begin
         // Incrementing is best done
         // outside of a pipeline.
-        counter <= counter + 1;
-        pixels <= incrementColor(pixels,counter);
+
         end
     integer imageFile;
     initial imageFile = $fopen("image.raw", "wb");
@@ -25,6 +22,12 @@ module PipeLine (
                 pixels_createEdge[0].blue);
 
     pipeline
+        stage #{init}
+            logic [7:0] counter = 0;
+            var PixelArray pixels;
+            initial pixels = initializePixels(pixels);
+            counter <= counter + 1;
+            pixels <= incrementColor(pixels#{+0},counter);
         stage #{createEdge}
             pixels <= createEdge(pixels, counter);
         stage #{addNoise}
@@ -55,14 +58,13 @@ module PipeLine (
             reg [17:0] distanceSquared[PipelineHeight];
             distanceSquared <= squaredDistance(delta);
         stage #{detector}
+            int ii;
             reg result[PipelineHeight];
-            always @(posedge clock) begin
-                for (int ii = 0; ii < 5; ii++) begin
+                for (ii = 0; ii < 5; ii++) begin
                     if (distanceSquared[ii] > 100)
                         result[ii] <= 1'b1;
                     else
                         result[ii] <= 1'b0;
-                end
             end
     endpipeline
     wire result2[PipelineHeight];

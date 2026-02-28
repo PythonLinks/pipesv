@@ -55,7 +55,46 @@ instance EditAST ModuleItem where
     editAST context (AlwaysC kw stmt) = do
         stmt' <- editAST context stmt
         return (AlwaysC kw stmt')
+    editAST context (Initial stmt) = do
+        stmt' <- editAST context stmt
+        return (Initial stmt')
+    editAST context (Generate genItems) = do
+        genItems' <- mapM (editAST context) genItems
+        return (Generate genItems')
     editAST _ mi = return mi
+
+instance EditAST GenItem where
+    editAST context (GenBlock name items) = do
+        items' <- mapM (editAST context) items
+        return (GenBlock name items')
+    editAST context (GenCase expr cases) = do
+        expr'  <- editAST context expr
+        cases' <- mapM (\(exprs, item) -> do
+                      exprs' <- mapM (editAST context) exprs
+                      item'  <- editAST context item
+                      return (exprs', item')) cases
+        return (GenCase expr' cases')
+    editAST context (GenFor (initVar, initExpr) cond (updateVar, op, updateExpr) body) = do
+
+        -- Add loop variables to contextLocalDecls so they are not
+        -- renamed by the default -1 offset rule.
+        let loopLocals = Set.fromList [initVar, updateVar]
+        let context'   = context { contextLocalDecls =
+                            Set.union loopLocals (contextLocalDecls context) }
+        initExpr'   <- editAST context' initExpr
+        cond'       <- editAST context' cond
+        updateExpr' <- editAST context' updateExpr
+        body'       <- editAST context' body
+        return (GenFor (initVar, initExpr') cond' (updateVar, op, updateExpr') body')
+    editAST context (GenIf expr thenItem elseItem) = do
+        expr'     <- editAST context expr
+        thenItem' <- editAST context thenItem
+        elseItem' <- editAST context elseItem
+        return (GenIf expr' thenItem' elseItem')
+    editAST context (GenModuleItem item) = do
+        item' <- editAST context item
+        return (GenModuleItem item')
+    editAST _ genItem = return genItem
 
 -- | Rewrites assignments (renames LHS root, rewrites RHS) and recurses into
 -- all compound statement variants so that identifiers nested inside explicit

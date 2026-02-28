@@ -13,8 +13,8 @@ and `pipeline` keywords, to System Verilog.
 - process an image through a video pipeline and redisplay it.
 ```
 
-Here is an example extracted from [the larger edge detector
-source code](./demo/detector.pl).  
+Here is an example extracted from [the larger pipeline demo
+source code](./demo/pipeline.pl).  
 
 ```
 initial pixels = initializePixels(pixels);
@@ -40,7 +40,7 @@ endpipeline
 PipeSV automatically renames variables to variableName_stageName, and then accesses them using either relative stage names #{-1}, or absolute stage names #{addNoise}. 
 
 For more details, you also read [the generated System
-Verilog](./demo/detector.sv). The PipeSVsource code is more terse and
+Verilog](./demo/pipeline.sv). The PipeSVsource code is more terse and
 readable than traditional System Verilog, so it can be modified
 faster.  The syntax prevents a number of possible inconsistencies with
 indexes in traditionally written code.
