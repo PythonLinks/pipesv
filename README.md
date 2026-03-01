@@ -6,7 +6,7 @@ not directly supported by System Verilog; there are no `stage` nor
 and `pipeline` keywords, to System Verilog. 
 
 ```diff
-- March 1, 2026 This is the second releae.  All 653 tests pass.
+- March 1, 2026 This is the second release.  All 653 tests pass.
 - AFAIK the functionality is complete.
 - This software is being used every day, and is rapidly evolving.
 - Check out the dev branch!
