@@ -1,20 +1,10 @@
-`ifndef DEFINITIONS_SV
-`define DEFINITIONS_SV
+`ifndef FUNCTIONS_SV
+`define FUNCTIONS_SV
 
-parameter PixelHeight = 5;
 
-  
-typedef struct packed {
-    logic [7:0] red;
-    logic [7:0] green;
-    logic [7:0] blue;
-} Pixel;
-
-typedef Pixel  PixelArray [PixelHeight];
-
-typedef logic [17:0] DistanceArray [PixelHeight];
-
-function automatic PixelArray incrementColor(PixelArray pixels, logic [7:0] counter);
+function automatic PixelArray incrementColor(
+    PixelArray pixels, 
+    logic [7:0] counter);
     for (int index = 0; index < 5; index++) begin
         pixels[index].red   = pixels[index].red   + 1'b1;
         if (counter == 0)
@@ -89,7 +79,7 @@ endfunction
 
 function automatic PixelArray average(PixelArray a, PixelArray b);
     PixelArray result;
-    for (int index = 0; index < PixelHeight; index++) begin
+    for (int index = 0; index < PipelineHeight; index++) begin
         logic [8:0] red, green, blue;
         red   = 9'(a[index].red)   + 9'(b[index].red);
         green = 9'(a[index].green) + 9'(b[index].green);
@@ -103,7 +93,7 @@ endfunction
 
 function automatic PixelArray difference(PixelArray a, PixelArray b);
     PixelArray result;
-    for (int index = 0; index < PixelHeight; index++) begin
+    for (int index = 0; index < PipelineHeight; index++) begin
         result[index].red   = (a[index].red   >= b[index].red)
                               ? a[index].red   - b[index].red
                               : b[index].red   - a[index].red;
@@ -117,9 +107,9 @@ function automatic PixelArray difference(PixelArray a, PixelArray b);
     return result;
 endfunction
 
-function automatic DistanceArray squaredDistance(PixelArray diff);
-    DistanceArray result;
-    for (int index = 0; index < PixelHeight; index++) begin
+function automatic DistanceSquared  squaredDistance(PixelArray diff);
+    DistanceSquared result;
+    for (int index = 0; index < PipelineHeight; index++) begin
         result[index] = (18'(diff[index].red)   * 18'(diff[index].red))
                       + (18'(diff[index].green) * 18'(diff[index].green))
                       + (18'(diff[index].blue)  * 18'(diff[index].blue));

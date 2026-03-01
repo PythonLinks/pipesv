@@ -46,7 +46,8 @@ editName context currentStageIndex ident (StageByOffset offset) =
 editName context _ ident (StageByName name) =
     case Map.lookup name (nameToIndex context) of
         Nothing -> do
-            hPutStrLn stderr $ "Error in NameResolution.editName: unknown stage name '"
+            hPutStrLn stderr $ "Error in file " ++ fileName context
+                ++ " in the function NameResolution.editName: unknown stage name '"
                 ++ name ++ "' in expression " ++ ident ++ "#{" ++ name ++ "}"
             exitFailure
         Just targetIndex -> editNameByIndex context targetIndex ident targetIndex
@@ -60,23 +61,36 @@ editNameByIndex context currentStageIndex ident targetIndex
     | Set.member ident (contextLocalDecls context) =
         if targetIndex /= currentStageIndex
             then do
-                hPutStrLn stderr $ "Error in NameResolution.editNameByIndex: "
-                    ++ ident ++ " is declared in the current stage and cannot be referenced from another stage"
+                hPutStrLn stderr $ "Error in file " ++ fileName context
+                    ++ " in the function NameResolution.editNameByIndex: '"
+                    ++ ident ++ "' is not assigned in stage '"
+                    ++ (contextStageNames context !! targetIndex)
+                    ++ "', so '" ++ ident ++ "_"
+                    ++ (contextStageNames context !! targetIndex) ++ "' does not exist"
                 exitFailure
             else do
-                hPutStrLn stderr $ "Warning: " ++ ident ++ " with same-stage reference is redundant"
+                hPutStrLn stderr $ "Warning in file " ++ fileName context
+                    ++ " in the function NameResolution.editNameByIndex: '"
+                    ++ ident ++ "' same-stage reference is redundant, use '"
+                    ++ ident ++ "' directly"
                 return ident
 
     -- Target stage is before the first stage: error
     | targetIndex < -1 = do
-        hPutStrLn stderr $ "Error in NameResolution.editNameByIndex: stage reference for "
-            ++ ident ++ " is too far back"
+        hPutStrLn stderr $ "Error in file " ++ fileName context
+            ++ " in the function NameResolution.editNameByIndex: '"
+            ++ ident ++ "#{" ++ show (targetIndex - currentStageIndex) ++ "}'"
+            ++ " in stage '" ++ (contextStageNames context !! currentStageIndex)
+            ++ "' refers to a point before the start of the pipeline"
         exitFailure
 
     -- Target stage is after the last stage: error
     | targetIndex > lastIndex = do
-        hPutStrLn stderr $ "Error in NameResolution.editNameByIndex: stage reference for "
-            ++ ident ++ " is too far forward"
+        hPutStrLn stderr $ "Error in file " ++ fileName context
+            ++ " in the function NameResolution.editNameByIndex: '"
+            ++ ident ++ "#{" ++ show (targetIndex - currentStageIndex) ++ "}'"
+            ++ " in stage '" ++ (contextStageNames context !! currentStageIndex)
+            ++ "' refers to a point after the end of the pipeline"
         exitFailure
 
     -- Target is -1: this is a port input, leave the name unchanged
@@ -89,7 +103,8 @@ editNameByIndex context currentStageIndex ident targetIndex
         if Set.member newName (validRHSNames context)
             then return newName
             else do
-                hPutStrLn stderr $ "Error in NameResolution.editNameByIndex: '"
+                hPutStrLn stderr $ "Error in file " ++ fileName context
+                    ++ " in the function NameResolution.editNameByIndex: '"
                     ++ newName ++ "' does not exist; '"
                     ++ ident ++ "' is not assigned in stage '"
                     ++ (contextStageNames context !! targetIndex) ++ "'"
@@ -107,15 +122,17 @@ applyDefaultOffset context currentStageIndex name
     | tgt == -1 =
         return (Ident name)
     | tgt < -1  = do
-        hPutStrLn stderr $ "Error in NameResolution.applyDefaultOffset: "
-            ++ "default -1 offset out of bounds for " ++ name
+        hPutStrLn stderr $ "Error in file " ++ fileName context
+            ++ " in the function NameResolution.applyDefaultOffset: "
+            ++ "default -1 offset out of bounds for '" ++ name ++ "'"
         exitFailure
     | otherwise = do
         let newName = name ++ "_" ++ (contextStageNames context !! tgt)
         if Set.member newName (validRHSNames context)
             then return (Ident newName)
             else do
-                hPutStrLn stderr $ "Error in NameResolution.applyDefaultOffset: '"
+                hPutStrLn stderr $ "Error in file " ++ fileName context
+                    ++ " in the function NameResolution.applyDefaultOffset: '"
                     ++ newName ++ "' does not exist; '"
                     ++ name ++ "' is not assigned in stage '"
                     ++ (contextStageNames context !! tgt) ++ "'"

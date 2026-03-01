@@ -1,7 +1,4 @@
-Pipeline argument should define the sensitivity list.
-Variable Argument should be an integer or name.
-initialize is not properly processing variables. 
-Use variable names defined in the input output interface. 
+Does not correctly process arguments in module declarations. 
 
 if a variable and a function share the
   same name in your codebase, we'd skip validating the function reference. But that's a very narrow
@@ -15,7 +12,6 @@ Flow: valid+data
 Stream: valid+ready+data
 
 
-I think I need pipeline and end pipelinekeywords
 pipeline(Registers)
 pipeline(Flow)
 pipeline(Stream) 

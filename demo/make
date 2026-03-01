@@ -1,11 +1,59 @@
 #!/bin/bash
 
+if ! command -v verilator &> /dev/null; then
+    echo "Error: verilator is not installed or not on PATH."
+    exit 1
+fi
+
+if ! command -v ffmpeg &> /dev/null; then
+    echo "Error: ffmpeg is not installed or not on PATH."
+    exit 1
+fi
+
 rm -f output.vcd
 rm detector.sv
 rm -f output.png
+rm -f image.raw
+rm -f pipeine.sv
+
 rm -rf obj_dir
-../bin/sv2v --pipesv --pass-through detector.pl > detector.sv
-verilator --cc --exe --build --trace --timing -o sim --top-module testbench sim_main.cpp testbench.sv definitions.sv detector.sv
+../bin/sv2v --pipesv --pass-through pipeline.pl > pipeline.sv
+
+if [ $? -ne 0 ]; then
+    echo "Error: PipeSV Failed."
+    exit 1
+fi
+
+verilator                 \
+  --cc                    \
+  --exe                   \
+  --build                 \
+  --trace                 \
+  --timing                \
+  -o sim                  \
+  --top-module testbench  \
+  sim_main.cpp            \
+  define.sv               \
+  testbench.sv            \
+  functions.sv            \
+  pipeline.sv
+
+  
+#verilator                 # Invoke Verilator \
+#  --cc                    # Generate C++ \
+#  --exe                   # Create an executable \
+#  --build                 # Build the executable\
+#  --trace                 # Enable VCD waveform tracing \
+#  --timing                # Enable delay-aware simulation \
+#  -o sim                  # Output file name is sim\
+#  --top-module testbench  # Set the top-level module name to "testbench"\
+#  sim_main.cpp            # C++ main() source file\
+#  testbench.sv            # SystemVerilog testbench \
+#  functions.sv            # Math Functions
+#  define.sv               # Shared definitions/parameters\
+#  pipeline.pl             # Pipeline file
+
+
 if [ $? -ne 0 ]; then
     echo "Error: Compilation failed."
     exit 1

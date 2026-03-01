@@ -83,7 +83,7 @@ writeOutput (Directory d) _ asts =
         prepare (name, ast) = (path, output)
             where
                 path = combine d $ name ++ ".v"
-                output = concatMap (++ "\n") $ map show ast
+                output = concatMap (++ "\n") $ map show $ filter (not . isComment) ast
 
 main :: IO ()
 main = do
@@ -108,7 +108,7 @@ main = do
             -- run PipeSV transforms if requested
             let converter = convert (top job) (dumpPrefix job) (exclude job)
             asts' <- if pipesv job
-                then mapM rewriteAST asts
+                then mapM (uncurry rewriteAST) (zip inPaths asts)
                 else return asts
 
             -- convert the files if requested

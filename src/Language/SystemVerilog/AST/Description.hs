@@ -40,7 +40,7 @@ instance Show Description where
         printf "%sextern %s %s%s %s;"
             (concatMap showPad attrs)
             (show kw) (showPad lifetime) name (indentedParenList itemStrs)
-        where itemStrs = map (init . show) items
+        where itemStrs = [init s | s <- map show items, not (null s), last s == ';']
     show (Part attrs False kw lifetime name ports items) =
         printf "%s%s %s%s%s;\n%s\nend%s"
             (concatMap showPad attrs)

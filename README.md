@@ -6,15 +6,14 @@ not directly supported by System Verilog; there are no `stage` nor
 and `pipeline` keywords, to System Verilog. 
 
 ```diff
-- Feb 26, 2025 This is the first release, use at your own risk.
-- It works, but it is still being polished up. 
-- By next week it should be quite good.
-- Within two weeks the next release will enable one to 
-- process an image through a video pipeline and redisplay it.
+- March 1, 2026 This is the second releae.  All 653 tests pass.
+- AFAIK the functionality is complete.
+- This software is being used every day, and is rapidly evolving.
+- Check out the dev branch!
 ```
 
-Here is an example extracted from [the larger edge detector
-source code](./demo/detector.pl).  
+Here is an example extracted from [the larger pipeline demo
+source code](./demo/pipeline.pl).  
 
 ```
 initial pixels = initializePixels(pixels);
@@ -40,7 +39,7 @@ endpipeline
 PipeSV automatically renames variables to variableName_stageName, and then accesses them using either relative stage names #{-1}, or absolute stage names #{addNoise}. 
 
 For more details, you also read [the generated System
-Verilog](./demo/detector.sv). The PipeSVsource code is more terse and
+Verilog](./demo/pipeline.sv). The PipeSVsource code is more terse and
 readable than traditional System Verilog, so it can be modified
 faster.  The syntax prevents a number of possible inconsistencies with
 indexes in traditionally written code.
@@ -198,7 +197,7 @@ Preprocessing:
      --skip-preprocessor    Disable preprocessing of macros, comments, etc.
 Conversion:
      --pass-through         Dump input without converting
-  -p --pipesv               First run the PipeSV processing     
+  -p --pipesv               Run PipeSV transforms before conversion
   -E --exclude=CONV         Exclude a particular conversion (Always, Assert,
                             Interface, Logic, SeverityTask, or UnbasedUnsized)
   -v --verbose              Retain certain conversion artifacts

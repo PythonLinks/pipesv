@@ -7,6 +7,7 @@ import System.Exit (exitFailure)
 import System.IO (hPutStrLn, stderr)
 
 import Language.SystemVerilog.AST
+import PipeSV.StageContext (StageContext, fileName)
 
 -- -------------------------------------------------------
 -- Types
@@ -15,6 +16,8 @@ import Language.SystemVerilog.AST
 -- | Location where a variable was declared — used in error messages.
 data Location
     = ModuleScope
+    | InputPortScope
+    | OutputPortScope
     | StageScope Identifier
 
 type SymbolTable = Map.Map Identifier (Type, Location, Expr)
@@ -55,6 +58,17 @@ stmtAssignedNames (Wait _ stmt)              = stmtAssignedNames stmt
 stmtAssignedNames (StmtAttr _ stmt)          = stmtAssignedNames stmt
 stmtAssignedNames _                          = []
 
+-- | Collects all root variable names assigned anywhere in a GenItem tree.
+genItemAssignedNames :: GenItem -> [Identifier]
+genItemAssignedNames (GenBlock _ items)               = concatMap genItemAssignedNames items
+genItemAssignedNames (GenCase _ cases)                = concatMap (genItemAssignedNames . snd) cases
+genItemAssignedNames (GenFor _ _ _ body)              = genItemAssignedNames body
+genItemAssignedNames (GenIf _ thenItem elseItem)      = genItemAssignedNames thenItem
+                                                     ++ genItemAssignedNames elseItem
+genItemAssignedNames (GenModuleItem (Statement stmt)) = stmtAssignedNames stmt
+genItemAssignedNames (GenModuleItem (AlwaysC _ stmt)) = stmtAssignedNames stmt
+genItemAssignedNames _                                = []
+
 -- -------------------------------------------------------
 -- Identifier substitution
 -- -------------------------------------------------------
@@ -77,9 +91,10 @@ substituteInExpr subst (Concat exprs) =
 substituteInExpr subst (Call name args) =
     Call name (substituteInArgs subst args)
 substituteInExpr subst (Bit e index) =
-    Bit (substituteInExpr subst e) index
-substituteInExpr subst (Range e mode r) =
-    Range (substituteInExpr subst e) mode r
+    Bit (substituteInExpr subst e) (substituteInExpr subst index)
+substituteInExpr subst (Range e mode (lo, hi)) =
+    Range (substituteInExpr subst e) mode
+          (substituteInExpr subst lo, substituteInExpr subst hi)
 substituteInExpr _ expr = expr
 
 -- | Applies a name substitution map to a function call argument list.
@@ -93,9 +108,10 @@ substituteInLHS :: Map.Map String String -> LHS -> LHS
 substituteInLHS subst (LHSIdent name) =
     LHSIdent (Map.findWithDefault name name subst)
 substituteInLHS subst (LHSBit lhs e) =
-    LHSBit (substituteInLHS subst lhs) e
-substituteInLHS subst (LHSRange lhs mode range) =
-    LHSRange (substituteInLHS subst lhs) mode range
+    LHSBit (substituteInLHS subst lhs) (substituteInExpr subst e)
+substituteInLHS subst (LHSRange lhs mode (lo, hi)) =
+    LHSRange (substituteInLHS subst lhs) mode
+             (substituteInExpr subst lo, substituteInExpr subst hi)
 substituteInLHS subst (LHSDot lhs field) =
     LHSDot (substituteInLHS subst lhs) field
 substituteInLHS subst (LHSConcat lhss) =
@@ -153,7 +169,32 @@ substituteInModuleItem subst (Statement stmt) =
     Statement (substituteInStmt subst stmt)
 substituteInModuleItem subst (AlwaysC kw stmt) =
     AlwaysC kw (substituteInStmt subst stmt)
+substituteInModuleItem subst (Initial stmt) =
+    Initial (substituteInStmt subst stmt)
+substituteInModuleItem subst (Generate genItems) =
+    Generate (map (substituteInGenItem subst) genItems)
 substituteInModuleItem _ item = item
+
+-- | Applies a name substitution map throughout a GenItem tree.
+substituteInGenItem :: Map.Map String String -> GenItem -> GenItem
+substituteInGenItem subst (GenBlock name items) =
+    GenBlock name (map (substituteInGenItem subst) items)
+substituteInGenItem subst (GenCase expr cases) =
+    GenCase (substituteInExpr subst expr)
+        [(map (substituteInExpr subst) exprs, substituteInGenItem subst item)
+        | (exprs, item) <- cases]
+substituteInGenItem subst (GenFor (initVar, initExpr) cond (updateVar, op, updateExpr) body) =
+    GenFor (initVar,   substituteInExpr subst initExpr)
+           (substituteInExpr subst cond)
+           (updateVar, op, substituteInExpr subst updateExpr)
+           (substituteInGenItem subst body)
+substituteInGenItem subst (GenIf expr thenItem elseItem) =
+    GenIf (substituteInExpr subst expr)
+          (substituteInGenItem subst thenItem)
+          (substituteInGenItem subst elseItem)
+substituteInGenItem subst (GenModuleItem item) =
+    GenModuleItem (substituteInModuleItem subst item)
+substituteInGenItem _ genItem = genItem
 
 -- | Renames the variable name in a local Variable declaration using the
 -- substitution map, preserving direction, type, ranges, and initializer.
@@ -168,17 +209,26 @@ renameLocalDecl _ item = item
 -- Symbol table initialization
 -- -------------------------------------------------------
 
+-- | Maps a declaration direction to its symbol table location.
+-- Input ports use InputPortScope; output and inout ports use OutputPortScope;
+-- non-port declarations (local) use ModuleScope.
+locationFor :: Direction -> Location
+locationFor Local  = ModuleScope
+locationFor Input  = InputPortScope
+locationFor Output = OutputPortScope
+locationFor Inout  = OutputPortScope
+
 -- | Builds the initial symbol table from module-scope declarations.
 -- Stage items are ignored — they are added later by processStage.
 initSymbolTable :: [ModuleItem] -> SymbolTable
 initSymbolTable items = Map.fromList $ concatMap extractDecl items
   where
 
-    extractDecl (MIPackageItem (Decl (Variable _ declType name _ initializer))) =
-        [(name, (declType, ModuleScope, initializer))]
+    extractDecl (MIPackageItem (Decl (Variable direction declType name _ initializer))) =
+        [(name, (declType, locationFor direction, initializer))]
 
-    extractDecl (MIPackageItem (Decl (Net _ _ _ declType name _ initializer))) =
-        [(name, (declType, ModuleScope, initializer))]
+    extractDecl (MIPackageItem (Decl (Net direction _ _ declType name _ initializer))) =
+        [(name, (declType, locationFor direction, initializer))]
 
     extractDecl _ = []
 
@@ -191,8 +241,8 @@ initSymbolTable items = Map.fromList $ concatMap extractDecl items
 -- to those names throughout the stage's statements and always blocks, and
 -- generates pipeline register declarations (name_stageName = 0) for each
 -- module-scope variable assigned in the stage.
-processStage :: SymbolTable -> String -> [ModuleItem] -> IO ([ModuleItem], SymbolTable)
-processStage symbolTable stageName items = do
+processStage :: StageContext -> SymbolTable -> String -> [ModuleItem] -> IO ([ModuleItem], SymbolTable)
+processStage context symbolTable stageName items = do
 
     -- Step 1: Add stage-local declarations to the symbol table,
     -- checking for duplicates, and collect their names.
@@ -203,9 +253,10 @@ processStage symbolTable stageName items = do
     let localRenaming = Map.fromList
             [(name, name ++ "_" ++ stageName) | name <- localDeclNames]
 
-    -- Step 3: Collect LHS root names from all assignment statements, then
-    -- identify module-scope variables (not covered by local declarations).
+    -- Step 3: Collect LHS root names from all assignment statements and
+    -- generate blocks, then identify module-scope variables.
     let assignedNames    = nub $ concatMap stmtAssignedNames stmts
+                              ++ concatMap genItemAssignedNames genBlockItems
     let newAssignedNames = filter (`notElem` localDeclNames) assignedNames
     checkedNames <- mapM (checkAssignedName stageTable) newAssignedNames
 
@@ -214,21 +265,29 @@ processStage symbolTable stageName items = do
     let newDecls = map (buildRegisterDecl stageTable) checkedNames
 
     -- Step 5: Rename local declarations to name_stageName and substitute
-    -- all references to local names in statement and always-block items.
-    let renamedDeclItems   = map (renameLocalDecl localRenaming) declItems
-    let renamedStmtItems   = map (substituteInModuleItem localRenaming) stmtItems
-    let renamedAlwaysItems = map (substituteInModuleItem localRenaming) alwaysItems
+    -- all references to local names in statement, always-block, initial,
+    -- and generate-block items.
+    let renamedDeclItems          = map (renameLocalDecl localRenaming) declItems
+    let renamedStmtItems          = map (substituteInModuleItem localRenaming) stmtItems
+    let renamedAlwaysItems        = map (substituteInModuleItem localRenaming) alwaysItems
+    let renamedInitialItems       = map (substituteInModuleItem localRenaming) initialItems
+    let renamedGenerateBlockItems = map (substituteInModuleItem localRenaming) generateBlockItems
 
     -- Step 6: Reassemble: renamed decls, new pipeline registers, renamed
-    -- statements, then renamed explicit always blocks.
-    return (renamedDeclItems ++ newDecls ++ renamedStmtItems ++ renamedAlwaysItems, stageTable)
+    -- statements, renamed always blocks, renamed initial blocks, and
+    -- renamed generate blocks.
+    return (renamedDeclItems ++ newDecls ++ renamedStmtItems ++ renamedAlwaysItems
+            ++ renamedInitialItems ++ renamedGenerateBlockItems, stageTable)
 
   where
 
-    declItems   = [item | item@(MIPackageItem (Decl _)) <- items]
-    stmtItems   = [item | item@(Statement _)            <- items]
-    alwaysItems = [item | item@(AlwaysC _ _)            <- items]
-    stmts       = [stmt | Statement stmt                <- items]
+    declItems          = [item    | item@(MIPackageItem (Decl _)) <- items]
+    stmtItems          = [item    | item@(Statement _)            <- items]
+    alwaysItems        = [item    | item@(AlwaysC _ _)            <- items]
+    initialItems       = [item    | item@(Initial _)              <- items]
+    generateBlockItems = [item    | item@(Generate _)             <- items]
+    stmts              = [stmt    | Statement stmt                <- items]
+    genBlockItems      = [genItem | Generate genItems <- items, genItem <- genItems]
 
     addDecl (table, names) (MIPackageItem (Decl (Variable _ declType name _ initializer))) = do
         checkDuplicate table name
@@ -240,12 +299,17 @@ processStage symbolTable stageName items = do
 
     checkDuplicate table name =
         case Map.lookup name table of
+            Just (_, InputPortScope, _) -> return ()
+            Just (_, OutputPortScope, _) -> do
+                hPutStrLn stderr $ "Error in file " ++ fileName context ++ " in the function GenerateVariables.processStage: "
+                    ++ "variable '" ++ name ++ "' already declared as an output port"
+                exitFailure
             Just (_, ModuleScope, _) -> do
-                hPutStrLn stderr $ "Error in GenerateVariables.processStage: "
+                hPutStrLn stderr $ "Error in file " ++ fileName context ++ " in the function GenerateVariables.processStage: "
                     ++ "variable '" ++ name ++ "' already declared at module scope"
                 exitFailure
             Just (_, StageScope existingStageName, _) -> do
-                hPutStrLn stderr $ "Error in GenerateVariables.processStage: "
+                hPutStrLn stderr $ "Error in file " ++ fileName context ++ " in the function GenerateVariables.processStage: "
                     ++ "variable '" ++ name ++ "' already declared in stage '"
                     ++ existingStageName ++ "'"
                 exitFailure
@@ -254,9 +318,16 @@ processStage symbolTable stageName items = do
     checkAssignedName table name =
         case Map.lookup name table of
             Nothing -> do
-                hPutStrLn stderr $ "Error in GenerateVariables.processStage: "
+                hPutStrLn stderr $ "Error in file " ++ fileName context ++ " in the function GenerateVariables.processStage: "
                     ++ "assignment to undeclared variable '" ++ name
                     ++ "' in stage '" ++ stageName ++ "'"
+                exitFailure
+            Just (_, OutputPortScope, _) -> do
+                hPutStrLn stderr $ "Error in file " ++ fileName context ++ " in the function GenerateVariables.processStage: "
+                    ++ "cannot assign to output port '" ++ name
+                    ++ "' in stage '" ++ stageName ++ "'. "
+                    ++ "Instead please assign values to output ports after "
+                    ++ "the end of the pipeline. It is conceptually cleaner that way."
                 exitFailure
             Just _ -> return name
 
@@ -266,7 +337,7 @@ processStage symbolTable stageName items = do
                 MIPackageItem (Decl (Variable Local declType
                     (name ++ "_" ++ stageName) [] initializer))
             Nothing ->
-                error "GenerateVariables.buildRegisterDecl: name not in table"
+                error $ "GenerateVariables.buildRegisterDecl: '" ++ name ++ "' not in table"
 
 -- -------------------------------------------------------
 -- Top-level entry point
@@ -275,8 +346,8 @@ processStage symbolTable stageName items = do
 -- | Processes all stages in a module's item list, threading the symbol
 -- table through in order so each stage sees declarations from all
 -- previous stages.
-generateVariables :: [ModuleItem] -> IO [ModuleItem]
-generateVariables items = do
+generateVariables :: StageContext -> [ModuleItem] -> IO [ModuleItem]
+generateVariables context items = do
 
     -- Initialize symbol table from module-scope declarations.
     let symbolTable = initSymbolTable items
@@ -288,7 +359,7 @@ generateVariables items = do
   where
 
     processItem (table, accumulated) (StageC kw (Stage name stageItems)) = do
-        (expanded, table') <- processStage table name stageItems
+        (expanded, table') <- processStage context table name stageItems
         return (table', StageC kw (Stage name expanded) : accumulated)
 
     processItem (table, accumulated) item =

@@ -11,18 +11,19 @@ import PipeSV.NameResolution
 import PipeSV.GenerateVariables (generateVariables)
 
 -- | Top-level entry point. Rewrites all stage expressions in an AST.
-rewriteAST :: AST -> IO AST
-rewriteAST ast = do
-    ast' <- mapM applyGenerateVariables ast
-    mapM (editAST emptyContext) ast'
+rewriteAST :: FilePath -> AST -> IO AST
+rewriteAST sourceFile ast = do
+    let context = emptyContext { fileName = sourceFile }
+    ast' <- mapM (applyGenerateVariables context) ast
+    mapM (editAST context) ast'
 
 -- | Applies generateVariables to the items of a module Part.
 -- All other Description variants pass through unchanged.
-applyGenerateVariables :: Description -> IO Description
-applyGenerateVariables (Part attrs b kw lt name ports items) = do
-    items' <- generateVariables items
+applyGenerateVariables :: StageContext -> Description -> IO Description
+applyGenerateVariables context (Part attrs b kw lt name ports items) = do
+    items' <- generateVariables context items
     return (Part attrs b kw lt name ports items')
-applyGenerateVariables description = return description
+applyGenerateVariables _ description = return description
 
 -- -------------------------------------------------------
 -- EditAST: rewrites stage expressions using the context
@@ -55,7 +56,46 @@ instance EditAST ModuleItem where
     editAST context (AlwaysC kw stmt) = do
         stmt' <- editAST context stmt
         return (AlwaysC kw stmt')
+    editAST context (Initial stmt) = do
+        stmt' <- editAST context stmt
+        return (Initial stmt')
+    editAST context (Generate genItems) = do
+        genItems' <- mapM (editAST context) genItems
+        return (Generate genItems')
     editAST _ mi = return mi
+
+instance EditAST GenItem where
+    editAST context (GenBlock name items) = do
+        items' <- mapM (editAST context) items
+        return (GenBlock name items')
+    editAST context (GenCase expr cases) = do
+        expr'  <- editAST context expr
+        cases' <- mapM (\(exprs, item) -> do
+                      exprs' <- mapM (editAST context) exprs
+                      item'  <- editAST context item
+                      return (exprs', item')) cases
+        return (GenCase expr' cases')
+    editAST context (GenFor (initVar, initExpr) cond (updateVar, op, updateExpr) body) = do
+
+        -- Add loop variables to contextLocalDecls so they are not
+        -- renamed by the default -1 offset rule.
+        let loopLocals = Set.fromList [initVar, updateVar]
+        let context'   = context { contextLocalDecls =
+                            Set.union loopLocals (contextLocalDecls context) }
+        initExpr'   <- editAST context' initExpr
+        cond'       <- editAST context' cond
+        updateExpr' <- editAST context' updateExpr
+        body'       <- editAST context' body
+        return (GenFor (initVar, initExpr') cond' (updateVar, op, updateExpr') body')
+    editAST context (GenIf expr thenItem elseItem) = do
+        expr'     <- editAST context expr
+        thenItem' <- editAST context thenItem
+        elseItem' <- editAST context elseItem
+        return (GenIf expr' thenItem' elseItem')
+    editAST context (GenModuleItem item) = do
+        item' <- editAST context item
+        return (GenModuleItem item')
+    editAST _ genItem = return genItem
 
 -- | Rewrites assignments (renames LHS root, rewrites RHS) and recurses into
 -- all compound statement variants so that identifiers nested inside explicit
@@ -123,7 +163,9 @@ instance EditAST Expr where
     editAST context (StageExpr se) =
         case contextIndex context of
             Nothing -> do
-                hPutStrLn stderr "Error: stage expression appears outside of a stage"
+                hPutStrLn stderr $ "Error in file " ++ fileName context
+                    ++ " in the function EditAst.editAST: stage expression '"
+                    ++ show (StageExpr se) ++ "' appears outside of a stage"
                 exitFailure
             Just currentStageIndex -> editStageExpr context currentStageIndex se
 
@@ -211,11 +253,11 @@ expandStage context stage = do
     let (statementItems, declarations) = partition isStatement rewrittenItems
     let stmts = [stmt | Statement stmt <- statementItems]
 
-    -- d. Wrap statements in always @(posedge clock) begin...end
-    let clockEvent  = Event (EventExpr (EventExprEdge Posedge (Ident "clock")))
+    -- d. Wrap statements in always @(...) begin...end
     let alwaysItems = if null stmts
                         then []
-                        else [AlwaysC Always (Timing clockEvent (Block Seq "" [] stmts))]
+                        else [AlwaysC Always (Timing (Event (contextSensitivity context'))
+                                                     (Block Seq "" [] stmts))]
     return (declarations ++ alwaysItems)
 
 isStatement :: ModuleItem -> Bool

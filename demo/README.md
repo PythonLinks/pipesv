@@ -16,4 +16,15 @@ pass through a series of stages.
 ## Running
 
 ./make compiles the Verilator code
-./run just runs it without compiling. 
+./run just runs it without compiling.
+
+
+To convert a png image to raw RGB888 use the following command.
+
+ffmpeg -i input.png -f rawvideo -pix_fmt rgb24 output.raw
+
+# Get just the file size in bytes
+ffprobe -i output.raw -show_entries format=size -v quiet -of csv="p=0"
+
+# Get detailed format info including size
+ffprobe -v error -show_format output.raw
