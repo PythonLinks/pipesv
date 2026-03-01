@@ -6,13 +6,10 @@ not directly supported by System Verilog; there are no `stage` nor
 and `pipeline` keywords, to System Verilog. 
 
 ```diff
-- Feb 28, 2025 This is the first release, use at your own risk.
-- It works, the functionality is getting quite mature
-- but it is still being polished up. Meaning that the
-- error messages are getting improved, and testing is being done. 
-- By next week it should be quite good.
-- Within two weeks the next release will enable one to 
-- process an image through a video pipeline and redisplay it.
+- March 1, 2026 This is the second releae.  All 653 tests pass.
+- AFAIK the functionality is complete.
+- This software is being used every day, and is rapidly evolving.
+- Check out the dev branch!
 ```
 
 Here is an example extracted from [the larger pipeline demo
@@ -200,7 +197,7 @@ Preprocessing:
      --skip-preprocessor    Disable preprocessing of macros, comments, etc.
 Conversion:
      --pass-through         Dump input without converting
-  -p --pipesv               First run the PipeSV processing     
+  -p --pipesv               Run PipeSV transforms before conversion
   -E --exclude=CONV         Exclude a particular conversion (Always, Assert,
                             Interface, Logic, SeverityTask, or UnbasedUnsized)
   -v --verbose              Retain certain conversion artifacts

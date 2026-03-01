@@ -42,7 +42,10 @@ instance Show Decl where
         where tStr = if t == UnknownType then "" else  " = " ++ show t
     show (Variable d t x a e) = printf "%s%s%s%s%s;" (showPad d) (showPad t) x (showRanges a) (showAssignment e)
     show (Net  d n s t x a e) = printf "%s%s%s %s%s%s%s;" (showPad d) (show n) (showPadBefore s) (showPad t) x (showRanges a) (showAssignment e)
-    show (CommentDecl c) = ""
+    show (CommentDecl c) =
+        if elem '\n' c
+            then "// " ++ show c
+            else "// " ++ c
 
 data Direction
     = Input

@@ -32,10 +32,10 @@ verilator                 \
   -o sim                  \
   --top-module testbench  \
   sim_main.cpp            \
+  define.sv               \
   testbench.sv            \
   functions.sv            \
-  define.sv               \
-  pipeline.sv             
+  pipeline.sv
 
   
 #verilator                 # Invoke Verilator \
@@ -63,5 +63,5 @@ if [ $? -ne 0 ]; then
     echo "Error: Simulation failed."
     exit 1
 fi
-ffmpeg -y  -f rawvideo -pix_fmt rgb24 -s 256*256 -i image.raw -update 1 output.png  ;open output.png
+#ffmpeg -y  -f rawvideo -pix_fmt rgb24 -s 256*256 -i image.raw -update 1 output.png  ;open output.png
 #gtkwave output.vcd

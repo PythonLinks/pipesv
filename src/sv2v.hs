@@ -83,7 +83,7 @@ writeOutput (Directory d) _ asts =
         prepare (name, ast) = (path, output)
             where
                 path = combine d $ name ++ ".v"
-                output = concatMap (++ "\n") $ map show ast
+                output = concatMap (++ "\n") $ map show $ filter (not . isComment) ast
 
 main :: IO ()
 main = do

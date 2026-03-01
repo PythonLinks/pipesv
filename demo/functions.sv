@@ -2,7 +2,9 @@
 `define FUNCTIONS_SV
 
 
-function automatic PixelArray incrementColor(PixelArray pixels, logic [7:0] counter);
+function automatic PixelArray incrementColor(
+    PixelArray pixels, 
+    logic [7:0] counter);
     for (int index = 0; index < 5; index++) begin
         pixels[index].red   = pixels[index].red   + 1'b1;
         if (counter == 0)
